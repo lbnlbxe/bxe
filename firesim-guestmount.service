@@ -2,7 +2,7 @@
 Description=Kernel Permissions for Guestmount (FireSim)
 
 [Service]
-ExecStart=/opt/firesim-guestmount.sh
+ExecStart=/opt/bxe/firesim-guestmount.sh
 Type=oneshot
 RemainAfterExit=yes
 

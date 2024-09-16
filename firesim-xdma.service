@@ -1,10 +1,11 @@
 [Unit]
-Description=Program XDMA Shell
+Description=Xilinx XDMA Drivers (FireSim)
 
 [Service]
-ExecStart=/opt/program-xdma-shell.sh
+ExecStart=/opt/bxe/firesim-xdma.sh
 Type=oneshot
 RemainAfterExit=yes
 
 [Install]
 WantedBy=multi-user.target
+

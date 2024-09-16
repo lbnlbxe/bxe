@@ -1,0 +1,6 @@
+<network>
+	<name>bxe</name>
+	<forward mode="bridge"/>
+	<bridge name="br1"/>
+</network>
+

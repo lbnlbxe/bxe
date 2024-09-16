@@ -1,0 +1,11 @@
+[Unit]  
+Description=Xilinx XVSEC Drivers (FireSim)  
+  
+[Service]  
+ExecStart=/opt/bxe/firesim-xvsec.sh  
+Type=oneshot  
+RemainAfterExit=yes  
+  
+[Install]  
+WantedBy=multi-user.target
+
