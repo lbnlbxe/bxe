@@ -1,0 +1,10 @@
+[Unit]
+Description=Program XDMA Shell
+
+[Service]
+ExecStart=/opt/program-xdma-shell.sh
+Type=oneshot
+RemainAfterExit=yes
+
+[Install]
+WantedBy=multi-user.target

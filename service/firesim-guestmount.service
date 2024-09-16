@@ -1,0 +1,11 @@
+[Unit]
+Description=Kernel Permissions for Guestmount (FireSim)
+
+[Service]
+ExecStart=/opt/firesim-guestmount.sh
+Type=oneshot
+RemainAfterExit=yes
+
+[Install]
+WantedBy=multi-user.target
+
