@@ -1,11 +1,11 @@
-export FIRESIM_HASH=1.20.1
-export CHIPYARD_HASH=7eb2cc1
+export FIRESIM_HASH=main
+export CHIPYARD_HASH=main
 
 ### Added FireSim and Chipyard Locations
-export FIRESIM_ROOT=${HOME}/firesim
-export CHIPYARD_ROOT=${FIRESIM_ROOT}/target-design/chipyard
+export CHIPYARD_ROOT=${HOME}/chipyard
+export FIRESIM_ROOT=${CHIPYARD_ROOT}/sims/firesim
 export FIREMARSHAL_ROOT=${CHIPYARD_ROOT}/software/firemarshal
-export FIRESIM_CONDA_ROOT=${HOME}/.conda
+export CONDA_ROOT=${HOME}/.conda
 
 ### Added Xilinx Tools  
 source /tools/source-vitis-2023.1.sh  
