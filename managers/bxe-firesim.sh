@@ -1,10 +1,12 @@
-export FIRESIM_HASH=main
-export CHIPYARD_HASH=main
+export BXE_CONFIG_DIR=${HOME}/.bxe
+
+export FIRESIM_HASH=
+export CHIPYARD_HASH=
 
 ### Added FireSim and Chipyard Locations
-export CHIPYARD_ROOT=${HOME}/chipyard
-export FIRESIM_ROOT=${CHIPYARD_ROOT}/sims/firesim
-export FIREMARSHAL_ROOT=${CHIPYARD_ROOT}/software/firemarshal
+export CHIPYARD_ROOT=
+export FIRESIM_ROOT=
+export FIREMARSHAL_ROOT=
 export CONDA_ROOT=${HOME}/.conda
 
 ### Added Xilinx Tools  
