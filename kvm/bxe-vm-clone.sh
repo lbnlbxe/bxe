@@ -1,5 +1,8 @@
 #!/bin/bash
 
+set -e
+set -x
+
 function displayUsage() {
 	echo -e "\nUsage: sudo $0 original_vm new_vm \n"
 }
@@ -47,4 +50,3 @@ ARG_NEW_HOST_NAME=$ARG_NEW_VM
 
 cloneVM $ARG_ORIGINAL_VM $ARG_NEW_VM
 sysPrep $ARG_NEW_VM $ARG_NEW_HOST_NAME
-
