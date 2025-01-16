@@ -29,7 +29,7 @@ function installOSPreqs() {
 
     echo "3. Installing Xilinx Prequisites"
     apt install -y libtinfo5 libncurses5 python3-pip libstdc++6:i386 \
-    libgtk2.0-0:i386 dpkg-dev:i386
+        libgtk2.0-0:i386 dpkg-dev:i386
     echo "----- OS Prequisites Complete -----"
 }
 
