@@ -1,7 +1,7 @@
 #!/bin/bash
 
 set -e
-set -x
+# set -x
 
 function displayUsage() {
 	echo -e "\nUsage: sudo $0 original_vm new_vm \n"
