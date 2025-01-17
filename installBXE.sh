@@ -7,7 +7,7 @@ export BXE_CONFIG_DIR=${HOME}/.bxe
 export CONDA_ROOT=${HOME}/.conda
 
 function usage() {
-	echo "Usage: $0 <chipyard|firesim> [install_path]"
+	echo "Usage: $0 <chipyard|firesim|bxe> [install_path]"
 	echo "  <chipyard|firesim|bxe> : Install one of the following"
 	echo "                           - Firesim within Chipyard (chipyard)"
 	echo "                           - Standalone (firesim)"
