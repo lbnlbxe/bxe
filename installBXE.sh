@@ -29,8 +29,9 @@ function installConda() {
 }
 
 function installBXEConfig() {
+    SCRIPT_DIR="$(dirname -- "${BASH_SOURCE[0]}")"
     mkdir -p ${BXE_CONFIG_DIR}
-    cp managers/* ${BXE_CONFIG_DIR}/.
+    cp ${SCRIPT_DIR}/managers/* ${BXE_CONFIG_DIR}/.
 }
 
 function installProfile() {

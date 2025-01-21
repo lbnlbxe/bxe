@@ -11,11 +11,10 @@ From: condaforge/miniforge3
 
 %post
     /opt/bxe/setupBXE.sh container
-    export CONDA_ALWAYS_YES="true"
-    echo ${CONDA_ALWAYS_YES}
-    cd /opt/bxe
-    ./installBXE.sh chipyard /opt/bxe/chipyard
-    unset CONDA_ALWAYS_YES
+    # export CONDA_ALWAYS_YES="true"
+    # echo ${CONDA_ALWAYS_YES}
+    # /opt/bxe/installBXE.sh chipyard /opt/bxe/chipyard
+    # unset CONDA_ALWAYS_YES
 
 %labels
     Author ffard@lbl.gov
