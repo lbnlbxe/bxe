@@ -3,15 +3,18 @@
 set -e
 # set -x
 
-function usage() {
-    echo "Usage: sudo $0"
+function displayUsage() {
+    echo "Usage: sudo $0 <native|container>"
+    echo "  <native|container> : Select installation type"
+    echo "                       - native: For installations direcly on hosts or VMs"
+    echo "                       = container: For installation within a container"
 }
 
 function checkSudo() {
 	# display usage if the script is not run as root user
 	if [[ "${EUID}" -ne 0 ]]; then
 		echo "This script must be run with super-user privileges."
-		usage
+		displayUsage
 		exit 1
 	fi
 }
@@ -20,16 +23,16 @@ function installOSPreqs() {
     echo "----- Installing OS Prequisites -----"
     apt update
     echo "1. Installing General Prerequisites"
-    apt install -y nfs-common openssh-server libguestfs-tools \
+    DEBIAN_FRONTEND=noninteractive TZ=America/Los_Angeles apt install -y nfs-common openssh-server libguestfs-tools \
         wget curl vim tree emacs tmux git build-essential \
         tigervnc-standalone-server
 
     echo "2. Installing Firesim Prerequisites"
-    apt install -y libc6-dev screen libtinfo-dev libtinfo5
+    DEBIAN_FRONTEND=noninteractive TZ=America/Los_Angeles apt install -y libc6-dev screen libtinfo-dev libtinfo5
 
     echo "3. Installing Xilinx Prequisites"
-    apt install -y libtinfo5 libncurses5 python3-pip libstdc++6:i386 \
-        libgtk2.0-0:i386 dpkg-dev:i386
+    DEBIAN_FRONTEND=noninteractive TZ=America/Los_Angeles apt install -y libtinfo5 libncurses5 python3-pip #libstdc++6:i386 \
+    #    libgtk2.0-0:i386 dpkg-dev:i386
     echo "----- OS Prequisites Complete -----"
 }
 
@@ -57,8 +60,44 @@ function installGuestMountService() {
     echo "----- Guest Mount Service Complete -----"
 }
 
-checkSudo
-installOSPreqs
-addToolsNFS
-installBXEScripts
-installGuestMountService
+function changeCondaSolver() {
+    echo "----- Changing Conda Solver -----"
+    if ! command -v conda 2>&1 >/dev/null; then
+        echo "Conda not installed!"
+        exit 1
+    fi
+    conda install -y -n base conda-libmamba-solver
+    conda config --set solver libmamba
+    echo "----- Conda Solver Change Complete -----"
+}
+
+if [ "$#" -ne 1 ]; then
+    echo "Incorrect number of arguments"
+    displayUsage
+    exit 1
+fi
+
+APP_INSTALLER_TYPE=$1
+
+case "$APP_INSTALLER_TYPE" in
+    "native")
+        checkSudo
+        installOSPreqs
+        addToolsNFS
+        installBXEScripts
+        installGuestMountService
+        ;;
+    
+    "container")
+        checkSudo
+        installOSPreqs
+        changeCondaSolver
+        ;;
+    
+    *)
+        echo "Invalid argument: $(APP_INSTALLER_TYPE)"
+        displayUsage
+        exit 1
+        ;;
+        
+esac

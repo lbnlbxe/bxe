@@ -6,7 +6,7 @@ set -e
 export BXE_CONFIG_DIR=${HOME}/.bxe
 export CONDA_ROOT=${HOME}/.conda
 
-function usage() {
+function displayUsage() {
 	echo "Usage: $0 <chipyard|firesim|bxe> [install_path]"
 	echo "  <chipyard|firesim|bxe> : Install one of the following"
 	echo "                           - Firesim within Chipyard (chipyard)"
@@ -95,7 +95,7 @@ function checkDirectory() {
 
 if [ "$#" -lt 1 ] || [ "$#" -gt 2 ]; then
     echo "Incorrect number of arguments."
-    usage
+    displayUsage
 	exit 1
 fi
 
@@ -120,7 +120,7 @@ case "$ARG_INSTALLER" in
     "bxe")
         if [ ! -d ${ARG_INSTALL_PATH}/deploy ]; then
             echo "Provided FireSim path does not exist: ${ARG_INSTALL_PATH}/deploy"
-            usage
+            displayUsage
             exit 1
         fi
         installBXEFireSim ${ARG_INSTALL_PATH}
@@ -128,7 +128,7 @@ case "$ARG_INSTALLER" in
 
     *)
         echo "Invalid installer: ${ARG_INSTALLER}"
-        usage
+        displayUsage
         exit 1
         ;;
 esac

@@ -1,0 +1,22 @@
+Bootstrap: docker
+From: condaforge/miniforge3
+
+%setup
+    mkdir -p ${APPTAINER_ROOTFS}/opt/bxe
+
+%files
+    setupBXE.sh /opt/bxe/setupBXE.sh
+    installBXE.sh /opt/bxe/installBXE.sh
+    managers /opt/bxe/managers
+
+%post
+    /opt/bxe/setupBXE.sh container
+    export CONDA_ALWAYS_YES="true"
+    echo ${CONDA_ALWAYS_YES}
+    cd /opt/bxe
+    ./installBXE.sh chipyard /opt/bxe/chipyard
+    unset CONDA_ALWAYS_YES
+
+%labels
+    Author ffard@lbl.gov
+    Version v2.3.0
