@@ -107,14 +107,14 @@ case "$ARG_INSTALLER" in
     "chipyard")
         checkDirectory
         installBXEConfig
-        installConda
+        # installConda
         installChipyard ${ARG_INSTALL_PATH}
         ;;
 
     "firesim")
         checkDirectory
         installBXEConfig
-        installConda
+        # installConda
         installFireSim ${ARG_INSTALL_PATH}
         ;;
 

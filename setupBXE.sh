@@ -63,8 +63,14 @@ function installGuestMountService() {
 function changeCondaSolver() {
     echo "----- Changing Conda Solver -----"
     if ! command -v conda 2>&1 >/dev/null; then
-        echo "Conda not installed!"
-        exit 1
+        # echo "Conda not installed!"
+        # exit 1
+        cd /tmp
+        wget https://github.com/conda-forge/miniforge/releases/latest/download/Miniforge3-Linux-x86_64.sh
+        bash Miniforge3-Linux-x86_64.sh -b -p "/opt/conda"
+        rm Miniforge3-Linux-x86_64.sh
+        source "/opt/conda/etc/profile.d/conda.sh"
+        source "/opt/conda/etc/profile.d/mamba.sh"
     fi
     conda install -y -n base conda-libmamba-solver
     conda config --set solver libmamba

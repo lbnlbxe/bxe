@@ -1,5 +1,9 @@
 Bootstrap: docker
-From: condaforge/miniforge3
+# From: condaforge/miniforge3
+From: ubuntu:20.04
+
+%environment
+    TINI_SUBREAPER=true
 
 %setup
     mkdir -p ${APPTAINER_ROOTFS}/opt/bxe
@@ -11,10 +15,12 @@ From: condaforge/miniforge3
 
 %post
     /opt/bxe/setupBXE.sh container
-    # export CONDA_ALWAYS_YES="true"
-    # echo ${CONDA_ALWAYS_YES}
-    # /opt/bxe/installBXE.sh chipyard /opt/bxe/chipyard
-    # unset CONDA_ALWAYS_YES
+    . "/opt/conda/etc/profile.d/conda.sh"
+    . "/opt/conda/etc/profile.d/mamba.sh"
+    export CONDA_ALWAYS_YES="true"
+    echo ${CONDA_ALWAYS_YES}
+    /opt/bxe/installBXE.sh chipyard /opt/bxe/chipyard
+    unset CONDA_ALWAYS_YES
 
 %labels
     Author ffard@lbl.gov
