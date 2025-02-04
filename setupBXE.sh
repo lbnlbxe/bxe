@@ -7,7 +7,7 @@ function displayUsage() {
     echo "Usage: sudo $0 <native|container>"
     echo "  <native|container> : Select installation type"
     echo "                       - native: For installations direcly on hosts or VMs"
-    echo "                       = container: For installation within a container"
+    echo "                       - container: For installation within a container"
 }
 
 function checkSudo() {
