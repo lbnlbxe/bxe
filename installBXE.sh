@@ -17,20 +17,13 @@ function displayUsage() {
 	echo "                           (default: ${HOME})"
 }
 
-function installConda() {
-    if ! command -v conda 2>&1 >/dev/null; then
-        cd /tmp
-        wget https://github.com/conda-forge/miniforge/releases/latest/download/Miniforge3-Linux-x86_64.sh
-        bash Miniforge3-Linux-x86_64.sh
-        cd
-        conda install -n base conda-libmamba-solver
-        conda config --set solver libmamba
-    fi
-}
-
 function installBXEConfig() {
     SCRIPT_DIR="$(dirname -- "${BASH_SOURCE[0]}")"
     mkdir -p ${BXE_CONFIG_DIR}
+    if [ -f ${BXE_CONFIG_DIR}/bxe-firesim.sh ]; then
+        DATE_TIME=$(date +"%Y%m%d_%H%M%S")
+        mv ${BXE_CONFIG_DIR}/bxe-firesim.sh ${BXE_CONFIG_DIR}/bxe-firesim-${DATE_TIME}.sh
+    fi
     cp ${SCRIPT_DIR}/managers/* ${BXE_CONFIG_DIR}/.
 }
 
@@ -107,14 +100,12 @@ case "$ARG_INSTALLER" in
     "chipyard")
         checkDirectory
         installBXEConfig
-        # installConda
         installChipyard ${ARG_INSTALL_PATH}
         ;;
 
     "firesim")
         checkDirectory
         installBXEConfig
-        # installConda
         installFireSim ${ARG_INSTALL_PATH}
         ;;
 

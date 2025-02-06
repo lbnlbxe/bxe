@@ -20,18 +20,22 @@ function checkSudo() {
 }
 
 function installOSPreqs() {
+    local IS_NATIVE=$1
     echo "----- Installing OS Prequisites -----"
     apt update
     echo "1. Installing General Prerequisites"
     DEBIAN_FRONTEND=noninteractive TZ=America/Los_Angeles apt install -y nfs-common openssh-server libguestfs-tools \
-        wget curl vim tree emacs tmux git build-essential \
-        tigervnc-standalone-server
+        wget curl vim tree emacs tmux git build-essential
+    
+    if [ "$IS_NATIVE" = true ]; then
+        DEBIAN_FRONTEND=noninteractive TZ=America/Los_Angeles apt install -y tigervnc-standalone-server
+    fi
 
     echo "2. Installing Firesim Prerequisites"
-    DEBIAN_FRONTEND=noninteractive TZ=America/Los_Angeles apt install -y libc6-dev screen libtinfo-dev libtinfo5
+    DEBIAN_FRONTEND=noninteractive TZ=America/Los_Angeles apt install -y libc6-dev screen libtinfo-dev
 
-    echo "3. Installing Xilinx Prequisites"
-    DEBIAN_FRONTEND=noninteractive TZ=America/Los_Angeles apt install -y libtinfo5 libncurses5 python3-pip #libstdc++6:i386 \
+    # echo "3. Installing Xilinx Prequisites"
+    # DEBIAN_FRONTEND=noninteractive TZ=America/Los_Angeles apt install -y libtinfo5 libncurses5 python3-pip #libstdc++6:i386 \
     #    libgtk2.0-0:i386 dpkg-dev:i386
     echo "----- OS Prequisites Complete -----"
 }
@@ -40,6 +44,7 @@ function addToolsNFS() {
     echo "----- Adding Tools NFS Mount -----"
     mkdir -p /tools
     sed -i -e '$avizion.lbl.gov:/mnt/vmpool/nfs/tools\t/tools\tnfs\tdefaults,timeo=900,retrans=5,_netdev\t0\t0\n' /etc/fstab
+    systemctl daemon-reload
     mount /tools
     echo "----- Tools NFS Mount Complete -----"
 }
@@ -60,11 +65,10 @@ function installGuestMountService() {
     echo "----- Guest Mount Service Complete -----"
 }
 
-function changeCondaSolver() {
-    echo "----- Changing Conda Solver -----"
+function installConda() {
+    echo "----- Installing Conda -----"
     if ! command -v conda 2>&1 >/dev/null; then
-        # echo "Conda not installed!"
-        # exit 1
+        echo "conda is not installed. Installing Miniforge3..."
         cd /tmp
         wget https://github.com/conda-forge/miniforge/releases/latest/download/Miniforge3-Linux-x86_64.sh
         bash Miniforge3-Linux-x86_64.sh -b -p "/opt/conda"
@@ -72,9 +76,7 @@ function changeCondaSolver() {
         source "/opt/conda/etc/profile.d/conda.sh"
         source "/opt/conda/etc/profile.d/mamba.sh"
     fi
-    conda install -y -n base conda-libmamba-solver
-    conda config --set solver libmamba
-    echo "----- Conda Solver Change Complete -----"
+    echo "----- Conda Install Complete -----"
 }
 
 if [ "$#" -ne 1 ]; then
@@ -88,7 +90,8 @@ APP_INSTALLER_TYPE=$1
 case "$APP_INSTALLER_TYPE" in
     "native")
         checkSudo
-        installOSPreqs
+        installOSPreqs true
+        installConda
         addToolsNFS
         installBXEScripts
         installGuestMountService
@@ -96,8 +99,10 @@ case "$APP_INSTALLER_TYPE" in
     
     "container")
         checkSudo
-        installOSPreqs
-        changeCondaSolver
+        installOSPreqs false
+        installConda
+        installBXEScripts
+        installGuestMountService
         ;;
     
     *)

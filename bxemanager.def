@@ -1,6 +1,6 @@
 Bootstrap: docker
 # From: condaforge/miniforge3
-From: ubuntu:20.04
+From: ubuntu:24.04
 
 %environment
     TINI_SUBREAPER=true

@@ -4,7 +4,9 @@ set -e
 # set -x
 
 function displayUsage() {
-	echo -e "\nUsage: sudo $0 original_vm new_vm \n"
+	echo "Usage: sudo $0 <original_vm> <new_vm>"
+	echo "  original_vm:	the name of the original virtual machine to clone"
+	echo "  new_vm:		    the name of the new virtual machine to create."
 }
 
 function checkSudo() {
@@ -31,7 +33,13 @@ function sysPrep () {
 
 	echo "Performing System Preperation on ${VM_NAME}..."
 	echo "VM Hostname: ${NEW_HOST_NAME}"
-	virt-sysprep -d $VM_NAME --operations user-account,defaults --hostname $NEW_HOST_NAME --keep-user-accounts bxeuser --firstboot-command 'dpkg-reconfigure openssh-server && ufw enable ssh'
+	virt-sysprep -d $VM_NAME \
+		--operations user-account,defaults \
+		--hostname $NEW_HOST_NAME \
+		--keep-user-accounts bxeuser \
+		--firstboot-command 'dpkg-reconfigure openssh-server && ufw allow ssh' \
+		--firstboot-command 'systemctl enable --now serial-getty@ttyS0.service' \
+		--copy-in ..:/opt/bxe
 	echo "System Preperation for ${VM_NAME} complete."
 }
 
