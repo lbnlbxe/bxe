@@ -5,6 +5,7 @@ set -e
 
 export BXE_CONFIG_DIR=${HOME}/.bxe
 export CONDA_ROOT=${HOME}/.conda
+export CONTAINER_CHIPYARD_BLD_ARGS="--skip -s 9"
 
 function displayUsage() {
 	echo "Usage: $0 <chipyard|firesim|bxe> [install_path]"
@@ -15,6 +16,27 @@ function displayUsage() {
 	echo "                             *Requires Firesim install_path*"
 	echo "  [install_path]         : Optional install path"
 	echo "                           (default: ${HOME})"
+}
+
+# Function to check if we are in a container
+function is_container() {
+    # Check for .dockerenv file
+    if [ -f /.dockerenv ]; then
+        return 0
+    fi
+
+    # Check for cgroup entries indicating containerization
+    if grep -q 'docker\|lxc\|kubepods\|podman' /proc/self/cgroup; then
+        return 0
+    fi
+
+    # Check for Apptainer container
+    if [ -f /.singularity.d/def ]; then
+        return 0
+    fi
+
+    # If none of the above checks pass, return 1 (not in container)
+    return 1
 }
 
 function installBXEConfig() {
@@ -46,7 +68,13 @@ function installChipyard() {
     cd ${INSTALL_PATH}
     CHIPYARD_GIT_HASH="$(git rev-parse --short HEAD)"
     CHIPYARD_GIT_ROOT="$(pwd)"
-    ./build-setup.sh
+    if is_container ; then
+        echo "[INFO] Building Chipyard for a container."
+        ./build-setup.sh $CONTAINER_CHIPYARD_BLD_ARGS
+    else
+        echo "[INFO} Building Chipyard natively."
+        ./build-setup.sh
+    fi
     cd sims/firesim
     FIRESIM_GIT_HASH="$(git rev-parse --short HEAD)"
     FIRESIM_GIT_ROOT="$(pwd)"
