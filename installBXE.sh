@@ -18,27 +18,6 @@ function displayUsage() {
 	echo "                           (default: ${HOME})"
 }
 
-# Function to check if we are in a container
-function is_container() {
-    # Check for .dockerenv file
-    if [ -f /.dockerenv ]; then
-        return 0
-    fi
-
-    # Check for cgroup entries indicating containerization
-    if grep -q 'docker\|lxc\|kubepods\|podman' /proc/self/cgroup; then
-        return 0
-    fi
-
-    # Check for Apptainer container
-    if [ -f /.singularity.d/def ]; then
-        return 0
-    fi
-
-    # If none of the above checks pass, return 1 (not in container)
-    return 1
-}
-
 function installBXEConfig() {
     SCRIPT_DIR="$(dirname -- "${BASH_SOURCE[0]}")"
     mkdir -p ${BXE_CONFIG_DIR}
@@ -68,12 +47,12 @@ function installChipyard() {
     cd ${INSTALL_PATH}
     CHIPYARD_GIT_HASH="$(git rev-parse --short HEAD)"
     CHIPYARD_GIT_ROOT="$(pwd)"
-    if is_container ; then
+    if [ -z "${BXE_CONTAINER}" ] ; then
+        echo "[INFO] Building Chipyard natively."
+        ./build-setup.sh
+    else
         echo "[INFO] Building Chipyard for a container."
         ./build-setup.sh $CONTAINER_CHIPYARD_BLD_ARGS
-    else
-        echo "[INFO} Building Chipyard natively."
-        ./build-setup.sh
     fi
     cd sims/firesim
     FIRESIM_GIT_HASH="$(git rev-parse --short HEAD)"

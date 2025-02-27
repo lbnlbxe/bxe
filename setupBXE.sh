@@ -25,7 +25,7 @@ function installOSPreqs() {
     apt update
     echo "1. Installing General Prerequisites"
     DEBIAN_FRONTEND=noninteractive TZ=America/Los_Angeles apt install -y nfs-common openssh-server libguestfs-tools \
-        wget curl vim tree emacs tmux git build-essential
+        wget curl vim tree emacs tmux git build-essential sudo
     
     if [ "$IS_NATIVE" = true ]; then
         DEBIAN_FRONTEND=noninteractive TZ=America/Los_Angeles apt install -y tigervnc-standalone-server
@@ -75,6 +75,7 @@ function installConda() {
         rm Miniforge3-Linux-x86_64.sh
         source "/opt/conda/etc/profile.d/conda.sh"
         source "/opt/conda/etc/profile.d/mamba.sh"
+        ln -sf /opt/conda/etc/profile.d/* /etc/profile.d/.
     fi
     echo "----- Conda Install Complete -----"
 }
@@ -101,8 +102,8 @@ case "$APP_INSTALLER_TYPE" in
         checkSudo
         installOSPreqs false
         installConda
-        installBXEScripts
-        installGuestMountService
+        # installBXEScripts
+        # installGuestMountService
         ;;
     
     *)
