@@ -8,7 +8,7 @@ COPY setupBXE.sh /opt/bxe
 COPY installBXE.sh /opt/bxe
 COPY managers/* /opt/bxe/managers
 
-RUN /opt/bxe/setupBXE.sh ${BXE_CONTAINER}
+RUN /opt/bxe/setupBXE.sh
 
 RUN echo 'source /opt/conda/etc/profile.d/conda.sh' >> /home/ubuntu/.bashrc
 RUN echo 'source /opt/conda/etc/profile.d/mamba.sh' >> /home/ubuntu/.bashrc

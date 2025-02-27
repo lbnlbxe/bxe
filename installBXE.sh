@@ -5,7 +5,7 @@ set -e
 
 export BXE_CONFIG_DIR=${HOME}/.bxe
 export CONDA_ROOT=${HOME}/.conda
-export CONTAINER_CHIPYARD_BLD_ARGS="--skip -s 9"
+export CONTAINER_CHIPYARD_BLD_ARGS="--skip 9"
 
 function displayUsage() {
 	echo "Usage: $0 <chipyard|firesim|bxe> [install_path]"
@@ -133,3 +133,5 @@ case "$ARG_INSTALLER" in
 esac
 
 installProfile
+
+echo "BXE Install Complete!"

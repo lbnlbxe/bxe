@@ -4,10 +4,8 @@ set -e
 # set -x
 
 function displayUsage() {
-    echo "Usage: sudo $0 <native|container>"
-    echo "  <native|container> : Select installation type"
-    echo "                       - native: For installations directly on hosts or VMs"
-    echo "                       - container: For installation within a container"
+    echo "Usage: sudo $0"
+    echo "  NOTE : This script expects \$BXE_CONTAINER if being run in a container."
 }
 
 function checkSudo() {
@@ -80,36 +78,19 @@ function installConda() {
     echo "----- Conda Install Complete -----"
 }
 
-if [ "$#" -ne 1 ]; then
-    echo "Incorrect number of arguments"
-    displayUsage
-    exit 1
-fi
+if [ -z "${BXE_CONTAINER}" ]; then
+    checkSudo
+    installOSPreqs true
+    installConda
+    addToolsNFS
+    installBXEScripts
+    installGuestMountService
+else
+    checkSudo
+    installOSPreqs false
+    installConda
+    # installBXEScripts
+    # installGuestMountService
+fi        
 
-APP_INSTALLER_TYPE=$1
-
-case "$APP_INSTALLER_TYPE" in
-    "native")
-        checkSudo
-        installOSPreqs true
-        installConda
-        addToolsNFS
-        installBXEScripts
-        installGuestMountService
-        ;;
-    
-    "container")
-        checkSudo
-        installOSPreqs false
-        installConda
-        # installBXEScripts
-        # installGuestMountService
-        ;;
-    
-    *)
-        echo "Invalid argument: $(APP_INSTALLER_TYPE)"
-        displayUsage
-        exit 1
-        ;;
-        
-esac
+echo "BXE Setup Complete!"
