@@ -49,7 +49,7 @@ function installChipyard() {
     CHIPYARD_GIT_ROOT="$(pwd)"
     if [ -z "${BXE_CONTAINER}" ] ; then
         echo "[INFO] Building Chipyard natively."
-        ./build-setup.sh
+        ./build-setup.sh 
     else
         echo "[INFO] Building Chipyard for a container."
         ./build-setup.sh $CONTAINER_CHIPYARD_BLD_ARGS
