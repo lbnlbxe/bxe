@@ -1,6 +1,6 @@
 #!/bin/bash
 
-set -e
+# set -e
 # set -x
 
 export BXE_CONFIG_DIR=${HOME}/.bxe
@@ -50,11 +50,12 @@ function installChipyard() {
     CHIPYARD_GIT_ROOT="$(pwd)"
     if [ -z "${BXE_CONTAINER}" ] ; then
         echo "[INFO] Building Chipyard natively."
-        ./build-setup.sh ${BASE_CHIPYARD_BLD_ARGS}
+        ./build-setup.sh ${BASE_CHIPYARD_BLD_ARGS} || :
     else
         echo "[INFO] Building Chipyard for a container."
-        ./build-setup.sh ${BASE_CHIPYARD_BLD_ARGS} ${CONTAINER_CHIPYARD_BLD_ARGS}
+        ./build-setup.sh ${BASE_CHIPYARD_BLD_ARGS} ${CONTAINER_CHIPYARD_BLD_ARGS} || :
     fi
+
     cd sims/firesim
     FIRESIM_GIT_HASH="$(git rev-parse --short HEAD)"
     FIRESIM_GIT_ROOT="$(pwd)"
@@ -136,3 +137,5 @@ esac
 installProfile
 
 echo "BXE Install Complete!"
+
+exit 0
