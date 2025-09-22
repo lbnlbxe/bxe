@@ -86,7 +86,7 @@ if [ -z "${BXE_CONTAINER}" ]; then
     checkSudo
     installOSPreqs true
     installConda
-    addToolsNFS
+    # addToolsNFS
     installBXEScripts
     installGuestMountService
 else
