@@ -22,11 +22,13 @@ function installOSPreqs() {
     echo "----- Installing OS Prequisites -----"
     apt update
     echo "1. Installing General Prerequisites"
-    DEBIAN_FRONTEND=noninteractive TZ=America/Los_Angeles apt install -y nfs-common openssh-server libguestfs-tools \
+    # DEBIAN_FRONTEND=noninteractive TZ=America/Los_Angeles apt install -y nfs-common openssh-server libguestfs-tools \
+        # wget curl vim tree emacs tmux git build-essential sudo
+    DEBIAN_FRONTEND=noninteractive TZ=America/Los_Angeles apt install -y openssh-server libguestfs-tools \
         wget curl vim tree emacs tmux git build-essential sudo
     
     if [ "$IS_NATIVE" = true ]; then
-        DEBIAN_FRONTEND=noninteractive TZ=America/Los_Angeles apt install -y tigervnc-standalone-server
+        DEBIAN_FRONTEND=noninteractive TZ=America/Los_Angeles apt install -y tigervnc-standalone-server xrdp
     fi
 
     echo "2. Installing Firesim Prerequisites"
@@ -76,8 +78,7 @@ function installConda() {
         bash Miniforge3-Linux-x86_64.sh -b -p "/opt/conda"
         rm Miniforge3-Linux-x86_64.sh
         source "/opt/conda/etc/profile.d/conda.sh"
-        source "/opt/conda/etc/profile.d/mamba.sh"
-        ln -sf /opt/conda/etc/profile.d/* /etc/profile.d/.
+        ln -sf /opt/conda/etc/profile.d/conda.sh /etc/profile.d/conda.sh
     fi
     echo "----- Conda Install Complete -----"
 }
