@@ -129,6 +129,11 @@ case "$ARG_INSTALLER" in
 			displayUsage
 			exit 1
 		fi
+		# Prompt to reset BXE configuration
+		read -r -p "Would you like to reset the BXE configuration before proceeding? (y/[n]) " answer
+		if [[ "$answer" =~ ^[Yy]$ ]]; then
+    		installBXEConfig
+		fi
 		installBXEFireSim ${ARG_INSTALL_PATH}
 		;;
 
