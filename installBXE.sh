@@ -1,10 +1,15 @@
 #!/bin/bash
 
-# set -e
-# set -x
+set -e
+set -o pipefail
 
 export BXE_CONFIG_DIR=${HOME}/.bxe
-export CONDA_ROOT=${HOME}/.conda
+# Detect conda location - prefer system conda if available
+if [ -d "/opt/conda" ]; then
+    export CONDA_ROOT="/opt/conda"
+else
+    export CONDA_ROOT="${HOME}/.conda"
+fi
 export BASE_CHIPYARD_BLD_ARGS=""
 export CONTAINER_CHIPYARD_BLD_ARGS="--skip 9 --skip 11"
 
@@ -44,28 +49,41 @@ function installBXEFireSim() {
 function installChipyard() {
     local INSTALL_PATH=$1
     cd ${HOME}
+
+    echo "[INFO] Cloning Chipyard repository..."
     git clone https://github.com/ucb-bar/chipyard ${INSTALL_PATH}
     cd ${INSTALL_PATH}
+
     CHIPYARD_GIT_HASH="$(git rev-parse --short HEAD)"
     CHIPYARD_GIT_ROOT="$(pwd)"
+
+    echo "[INFO] Chipyard cloned at: ${CHIPYARD_GIT_ROOT}"
+    echo "[INFO] Chipyard commit: ${CHIPYARD_GIT_HASH}"
+
     if [ -z "${BXE_CONTAINER}" ] ; then
         echo "[INFO] Building Chipyard natively."
-        ./build-setup.sh ${BASE_CHIPYARD_BLD_ARGS} || :
+        ./build-setup.sh ${BASE_CHIPYARD_BLD_ARGS}
     else
         echo "[INFO] Building Chipyard for a container."
-        ./build-setup.sh ${BASE_CHIPYARD_BLD_ARGS} ${CONTAINER_CHIPYARD_BLD_ARGS} || :
+        ./build-setup.sh ${BASE_CHIPYARD_BLD_ARGS} ${CONTAINER_CHIPYARD_BLD_ARGS}
     fi
 
     cd sims/firesim
     FIRESIM_GIT_HASH="$(git rev-parse --short HEAD)"
     FIRESIM_GIT_ROOT="$(pwd)"
-    cd
 
-    sed -i '/CHIPYARD_HASH=/s/$/'"${CHIPYARD_GIT_HASH}"'/' ${BXE_CONFIG_DIR}/bxe-firesim.sh
-    awk -v dir=${CHIPYARD_GIT_ROOT} '{if ($0 ~ /CHIPYARD_ROOT=/) $0 = $0 dir; print}' ${BXE_CONFIG_DIR}/bxe-firesim.sh > ${BXE_CONFIG_DIR}/temp && mv temp ${BXE_CONFIG_DIR}/bxe-firesim.sh
-    sed -i '/FIRESIM_HASH=/s/$/'"${FIRESIM_GIT_HASH}"'/' ${BXE_CONFIG_DIR}/bxe-firesim.sh
-    sed -i '/FIRESIM_ROOT=/s|$|${CHIPYARD_ROOT}/sims/firesim|' ${BXE_CONFIG_DIR}/bxe-firesim.sh
-    sed -i '/FIREMARSHAL_ROOT=/s|$|${CHIPYARD_ROOT}/software/firemarshal|' ${BXE_CONFIG_DIR}/bxe-firesim.sh
+    echo "[INFO] FireSim location: ${FIRESIM_GIT_ROOT}"
+    echo "[INFO] FireSim commit: ${FIRESIM_GIT_HASH}"
+
+    cd ${HOME}
+
+    # Update BXE configuration with installation paths and versions
+    sed -i "s|^export CHIPYARD_HASH=.*|export CHIPYARD_HASH=${CHIPYARD_GIT_HASH}|" ${BXE_CONFIG_DIR}/bxe-firesim.sh
+    sed -i "s|^export CHIPYARD_ROOT=.*|export CHIPYARD_ROOT=${CHIPYARD_GIT_ROOT}|" ${BXE_CONFIG_DIR}/bxe-firesim.sh
+    sed -i "s|^export FIRESIM_HASH=.*|export FIRESIM_HASH=${FIRESIM_GIT_HASH}|" ${BXE_CONFIG_DIR}/bxe-firesim.sh
+    sed -i "s|^export FIRESIM_ROOT=.*|export FIRESIM_ROOT=\${CHIPYARD_ROOT}/sims/firesim|" ${BXE_CONFIG_DIR}/bxe-firesim.sh
+    sed -i "s|^export FIREMARSHAL_ROOT=.*|export FIREMARSHAL_ROOT=\${CHIPYARD_ROOT}/software/firemarshal|" ${BXE_CONFIG_DIR}/bxe-firesim.sh
+    sed -i "s|^export CONDA_ROOT=.*|export CONDA_ROOT=${CONDA_ROOT}|" ${BXE_CONFIG_DIR}/bxe-firesim.sh
 
     installBXEFireSim ${FIRESIM_GIT_ROOT}
 }
@@ -73,18 +91,28 @@ function installChipyard() {
 function installFireSim() {
     local INSTALL_PATH=$1
     cd ${HOME}
+
+    echo "[INFO] Cloning FireSim repository..."
     git clone https://github.com/firesim/firesim ${INSTALL_PATH}
     cd ${INSTALL_PATH}
+
     FIRESIM_GIT_HASH="$(git rev-parse --short HEAD)"
     FIRESIM_GIT_ROOT="$(pwd)"
-    ./build-setup.sh
-    cd
 
+    echo "[INFO] FireSim cloned at: ${FIRESIM_GIT_ROOT}"
+    echo "[INFO] FireSim commit: ${FIRESIM_GIT_HASH}"
+
+    ./build-setup.sh
+
+    cd ${HOME}
+
+    # Update BXE configuration (standalone FireSim - no Chipyard)
     sed -i '/CHIPYARD_HASH=/d' ${BXE_CONFIG_DIR}/bxe-firesim.sh
     sed -i '/CHIPYARD_ROOT=/d' ${BXE_CONFIG_DIR}/bxe-firesim.sh
-    sed -i '/FIRESIM_HASH=/s/$/'"${FIRESIM_GIT_HASH}"'/' ${BXE_CONFIG_DIR}/bxe-firesim.sh
-    awk -v dir=${FIRESIM_GIT_ROOT} '{if ($0 ~ /FIRESIM_ROOT=/) $0 = $0 dir; print}' ${BXE_CONFIG_DIR}/bxe-firesim.sh > ${BXE_CONFIG_DIR}/temp && mv temp ${BXE_CONFIG_DIR}/bxe-firesim.sh
+    sed -i "s|^export FIRESIM_HASH=.*|export FIRESIM_HASH=${FIRESIM_GIT_HASH}|" ${BXE_CONFIG_DIR}/bxe-firesim.sh
+    sed -i "s|^export FIRESIM_ROOT=.*|export FIRESIM_ROOT=${FIRESIM_GIT_ROOT}|" ${BXE_CONFIG_DIR}/bxe-firesim.sh
     sed -i '/FIREMARSHAL_ROOT=/d' ${BXE_CONFIG_DIR}/bxe-firesim.sh
+    sed -i "s|^export CONDA_ROOT=.*|export CONDA_ROOT=${CONDA_ROOT}|" ${BXE_CONFIG_DIR}/bxe-firesim.sh
 
     installBXEFireSim ${FIRESIM_GIT_ROOT}
 }
@@ -102,8 +130,8 @@ if [ "$#" -lt 1 ] || [ "$#" -gt 2 ]; then
 	exit 1
 fi
 
-ARG_INSTALLER=$1
 ARG_INSTALL_PATH=${2:-${ARG_INSTALLER}}
+ARG_INSTALLER=$1
 
 case "$ARG_INSTALLER" in
     "chipyard")
