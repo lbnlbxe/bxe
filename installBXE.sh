@@ -54,11 +54,17 @@ function installBXEFireSim() {
 function installChipyard() {
 	local INSTALL_PATH=$1
 	cd ${HOME}
+    
+    echo "[INFO] Cloning Chipyard repository..."
 	git clone https://github.com/ucb-bar/chipyard ${INSTALL_PATH}
 	cd ${INSTALL_PATH}
+
 	CHIPYARD_GIT_HASH="$(git rev-parse --short HEAD)"
 	CHIPYARD_GIT_ROOT="$(pwd)"
-	if [ -z "${BXE_CONTAINER}" ] ; then
+    echo "[INFO] Chipyard cloned at: ${CHIPYARD_GIT_ROOT}"
+    echo "[INFO] Chipyard commit: ${CHIPYARD_GIT_HASH}"
+	
+    if [ -z "${BXE_CONTAINER}" ] ; then
 		echo "[INFO] Building Chipyard natively."
 		./build-setup.sh ${BASE_CHIPYARD_BLD_ARGS} || :
 	else
@@ -69,7 +75,10 @@ function installChipyard() {
 	cd sims/firesim
 	FIRESIM_GIT_HASH="$(git rev-parse --short HEAD)"
 	FIRESIM_GIT_ROOT="$(pwd)"
-	cd
+	echo "[INFO] FireSim location: ${FIRESIM_GIT_ROOT}"
+    echo "[INFO] FireSim commit: ${FIRESIM_GIT_HASH}"
+
+    cd ${HOME}
 
     sed -i '/CHIPYARD_HASH=/s/$/'"${CHIPYARD_GIT_HASH}"'/' ${BXE_CONFIG_DIR}/bxe-firesim.sh
     awk -v dir=${CHIPYARD_GIT_ROOT} '{if ($0 ~ /CHIPYARD_ROOT=/) $0 = $0 dir; print}' ${BXE_CONFIG_DIR}/bxe-firesim.sh > ${BXE_CONFIG_DIR}/temp && mv ${BXE_CONFIG_DIR}/temp ${BXE_CONFIG_DIR}/bxe-firesim.sh
