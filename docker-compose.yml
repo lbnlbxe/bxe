@@ -1,0 +1,60 @@
+version: '3.8'
+
+services:
+  bxemanager:
+    image: bxemanager:latest
+    container_name: bxemanager
+
+    # Build configuration (uncomment to build from source)
+    # build:
+    #   context: .
+    #   dockerfile: bxemanager.dockerfile
+    #   args:
+    #     UNAME: ubuntu
+    #     UID: 1000
+    #     GID: 1000
+
+    # Required volumes
+    volumes:
+      # Required: Xilinx Vitis tools from host
+      - /tools:/tools:ro
+
+      # Optional: Persistent workspace
+      - bxe-workspace:/home/ubuntu
+
+      # Optional: SSH keys (if needed for FireSim)
+      # - ${HOME}/.ssh:/home/ubuntu/.ssh:ro
+
+    # Environment variables (optional overrides)
+    environment:
+      - TZ=America/Los_Angeles
+      # - CONDA_ALWAYS_YES=true
+
+    # Interactive terminal
+    stdin_open: true
+    tty: true
+
+    # Optional: Expose SSH port for remote access
+    # ports:
+    #   - "2222:22"
+
+    # Optional: Resource limits
+    # deploy:
+    #   resources:
+    #     limits:
+    #       cpus: '8'
+    #       memory: 32G
+    #     reservations:
+    #       cpus: '4'
+    #       memory: 16G
+
+    # Optional: Privileged mode (if needed for specific operations)
+    # privileged: true
+
+    # Optional: Network configuration
+    # network_mode: host
+
+volumes:
+  # Named volume for persistent workspace
+  bxe-workspace:
+    driver: local

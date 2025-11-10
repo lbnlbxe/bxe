@@ -1,10 +1,15 @@
 #!/bin/bash
 
-# set -e
-# set -x
+set -e
+set -o pipefail
 
 export BXE_CONFIG_DIR=${HOME}/.bxe
-export CONDA_ROOT=${HOME}/.conda
+# Detect conda location - prefer system conda if available
+if [ -d "/opt/conda" ]; then
+    export CONDA_ROOT="/opt/conda"
+else
+    export CONDA_ROOT="${HOME}/.conda"
+fi
 export BASE_CHIPYARD_BLD_ARGS=""
 export CONTAINER_CHIPYARD_BLD_ARGS="--skip 9 --skip 11"
 
@@ -76,20 +81,30 @@ function installChipyard() {
 }
 
 function installFireSim() {
-	local INSTALL_PATH=$1
-	cd ${HOME}
-	git clone https://github.com/firesim/firesim ${INSTALL_PATH}
-	cd ${INSTALL_PATH}
-	FIRESIM_GIT_HASH="$(git rev-parse --short HEAD)"
-	FIRESIM_GIT_ROOT="$(pwd)"
-	./build-setup.sh
-	cd
+    local INSTALL_PATH=$1
+    cd ${HOME}
 
+    echo "[INFO] Cloning FireSim repository..."
+    git clone https://github.com/firesim/firesim ${INSTALL_PATH}
+    cd ${INSTALL_PATH}
+
+    FIRESIM_GIT_HASH="$(git rev-parse --short HEAD)"
+    FIRESIM_GIT_ROOT="$(pwd)"
+
+    echo "[INFO] FireSim cloned at: ${FIRESIM_GIT_ROOT}"
+    echo "[INFO] FireSim commit: ${FIRESIM_GIT_HASH}"
+
+    ./build-setup.sh
+
+    cd ${HOME}
+
+    # Update BXE configuration (standalone FireSim - no Chipyard)
     sed -i '/CHIPYARD_HASH=/d' ${BXE_CONFIG_DIR}/bxe-firesim.sh
     sed -i '/CHIPYARD_ROOT=/d' ${BXE_CONFIG_DIR}/bxe-firesim.sh
     sed -i '/FIRESIM_HASH=/s/$/'"${FIRESIM_GIT_HASH}"'/' ${BXE_CONFIG_DIR}/bxe-firesim.sh
     awk -v dir=${FIRESIM_GIT_ROOT} '{if ($0 ~ /FIRESIM_ROOT=/) $0 = $0 dir; print}' ${BXE_CONFIG_DIR}/bxe-firesim.sh > ${BXE_CONFIG_DIR}/temp && mv ${BXE_CONFIG_DIR}/temp ${BXE_CONFIG_DIR}/bxe-firesim.sh
     sed -i '/FIREMARSHAL_ROOT=/d' ${BXE_CONFIG_DIR}/bxe-firesim.sh
+    sed -i "s|^export CONDA_ROOT=.*|export CONDA_ROOT=${CONDA_ROOT}|" ${BXE_CONFIG_DIR}/bxe-firesim.sh
 
 	installBXEFireSim ${FIRESIM_GIT_ROOT}
 }
@@ -107,8 +122,8 @@ if [ "$#" -lt 1 ] || [ "$#" -gt 2 ]; then
 	exit 1
 fi
 
-ARG_INSTALLER=$1
 ARG_INSTALL_PATH=${2:-${ARG_INSTALLER}}
+ARG_INSTALLER=$1
 
 case "$ARG_INSTALLER" in
 	"chipyard")
