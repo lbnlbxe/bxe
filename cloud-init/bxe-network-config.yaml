@@ -1,0 +1,12 @@
+#cloud-config
+# Network configuration for BXE VMs
+# This configures the VM to use DHCP on any ethernet interface
+
+version: 2
+ethernets:
+  # Match any ethernet interface (en*, eth*, etc.)
+  all-ethernet:
+    match:
+      name: "en*"
+    dhcp4: true
+    dhcp6: false

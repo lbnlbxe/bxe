@@ -54,10 +54,33 @@ function addToolsNFS() {
 }
 
 function installBXEScripts() {
+    local SOURCE_DIR=$1
     echo "----- Installing BXE Scripts -----"
     mkdir -p /opt/bxe
-    cp /tools/bxe/bxe-utilities/firesim-guestmount.s* /opt/bxe/.
-    cp /tools/bxe/bxe-utilities/regenSSHKey.sh /opt/bxe/.
+    mkdir -p /opt/bxe/managers
+
+    # Copy system scripts
+    if [ -f "${SOURCE_DIR}/firesim-guestmount.service" ]; then
+        cp "${SOURCE_DIR}/firesim-guestmount.service" /opt/bxe/.
+    fi
+    if [ -f "${SOURCE_DIR}/firesim-guestmount.sh" ]; then
+        cp "${SOURCE_DIR}/firesim-guestmount.sh" /opt/bxe/.
+    fi
+    if [ -f "${SOURCE_DIR}/regenSSHKey.sh" ]; then
+        cp "${SOURCE_DIR}/regenSSHKey.sh" /opt/bxe/.
+    fi
+
+    # Copy installBXE.sh and dependencies for users
+    if [ -f "${SOURCE_DIR}/installBXE.sh" ]; then
+        cp "${SOURCE_DIR}/installBXE.sh" /opt/bxe/.
+        chmod +x /opt/bxe/installBXE.sh
+    fi
+
+    # Copy managers directory (needed by installBXE.sh)
+    if [ -d "${SOURCE_DIR}/managers" ]; then
+        cp "${SOURCE_DIR}"/managers/* /opt/bxe/managers/.
+    fi
+
     echo "----- BXE Scripts Install Complete -----"
 }
 
@@ -83,18 +106,49 @@ function installConda() {
     echo "----- Conda Install Complete -----"
 }
 
+function setupToolsVirtioFS() {
+    echo "----- Setting up virtiofs mount for /tools -----"
+    mkdir -p /tools
+
+    # Add to fstab if not already present
+    if ! grep -q "virtiofs" /etc/fstab; then
+        echo "tools  /tools  virtiofs  ro,defaults  0  0" >> /etc/fstab
+        echo "Added /tools virtiofs mount to /etc/fstab"
+    else
+        echo "/tools virtiofs mount already in /etc/fstab"
+    fi
+
+    # Try to mount (will succeed if VM XML has filesystem defined)
+    if ! mountpoint -q /tools; then
+        if mount /tools 2>/dev/null; then
+            echo "/tools mounted successfully via virtiofs"
+        else
+            echo "Note: /tools will mount at next boot (requires virtiofs in VM XML)"
+            echo "      Add filesystem device to VM with: virsh edit <vm-name>"
+        fi
+    else
+        echo "/tools already mounted"
+    fi
+
+    echo "----- virtiofs mount setup complete -----"
+}
+
+# Determine script source directory
+SETUP_SCRIPT_DIR="$(cd "$(dirname "${BASH_SOURCE[0]}")" && pwd)"
+
 if [ -z "${BXE_CONTAINER}" ]; then
     checkSudo
     installOSPreqs true
     installConda
-    # addToolsNFS
-    installBXEScripts
+    setupToolsVirtioFS
+    installBXEScripts "${SETUP_SCRIPT_DIR}"
     installGuestMountService
 else
     checkSudo
     installOSPreqs false
     installConda
-    # installBXEScripts
+    # Container doesn't use virtiofs (uses Docker volume mounts)
+    # installBXEScripts "${SETUP_SCRIPT_DIR}"
     # installGuestMountService
 fi        
 
