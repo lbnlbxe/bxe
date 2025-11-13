@@ -248,10 +248,10 @@ groups alice
   - Used for: Admin access, orchestration scripts
   - Location: `~/.ssh/authorized_keys` for bxeuser
 
-- **Password authentication**: **DISABLED by default** (`ssh_pwauth: false` in cloud-init)
-  - This is a **system-wide** setting affecting ALL users
-  - All users must use SSH key authentication
-  - To enable password login, change `ssh_pwauth: true` in `cloud-init/bxe-user-data.yaml` before creating golden image
+- **Password authentication**: **ENABLED for new users** (`ssh_pwauth: true` in cloud-init)
+  - System-wide setting allows password login for users created after golden image
+  - `bxeuser` has password **DISABLED** (`lock_passwd: true`) - SSH key only for security
+  - New users can login with passwords (recommended: set strong passwords)
 
 - **FireSim group**: Users who need FireSim access should be added to the `firesim` group
   - Members of `firesim` group have sudo access without password (via `/etc/sudoers.d/90-firesim-group`)
@@ -279,25 +279,27 @@ groups alice
 
 ## Troubleshooting
 
-### "Permission denied (publickey)" when SSH'ing
+### "Permission denied (publickey)" when SSH'ing to bxeuser
 
-**Cause:** SSH key not added to VM, and password auth is disabled.
+**Cause:** SSH key not added to `bxeuser` account (password auth is disabled for this account).
 
 **Fix:**
 ```bash
 # Option 1: Add your SSH key to cloud-init BEFORE creating golden image
-# Edit cloud-init/bxe-user-data.yaml line 15 with your public key
+# Edit cloud-init/bxe-user-data.yaml line 18 with your public key
+# This is the RECOMMENDED approach
 
-# Option 2: Enable password authentication
-# Edit cloud-init/bxe-user-data.yaml:
-# Change: ssh_pwauth: false
-# To:     ssh_pwauth: true
-
-# Option 3: Add key to existing VM via console
+# Option 2: Add key to existing VM via console
 virsh console <vm-name>
-# Login as bxeuser (if you can)
-# Then: echo "ssh-rsa YOUR_PUBLIC_KEY" >> ~/.ssh/authorized_keys
+# Wait for login prompt
+# You can't login as bxeuser (SSH key only)
+# But you CAN login as root (for recovery)
+# Then add your key:
+echo "ssh-rsa YOUR_PUBLIC_KEY" >> /home/bxeuser/.ssh/authorized_keys
+chown bxeuser:bxeuser /home/bxeuser/.ssh/authorized_keys
 ```
+
+**Note:** `bxeuser` is SSH key only by design (for security). New users can use passwords via XRDP.
 
 ### "installBXE.sh: command not found"
 

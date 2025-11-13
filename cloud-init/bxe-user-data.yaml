@@ -14,6 +14,7 @@ users:
   - name: bxeuser
     groups: [sudo, firesim]
     shell: /bin/bash
+    lock_passwd: true  # Disable password login for bxeuser (SSH key only)
     ssh_authorized_keys:
       - ssh-rsa AAAAB3NzaC1yc2E... # Replace with your public key
 
@@ -42,6 +43,11 @@ packages:
   - tmux
   - build-essential
   - python3-pip
+  # Desktop environment - Xfce (matches Xubuntu)
+  - xfce4
+  - xfce4-goodies
+  - dbus
+  - dbus-x11
 
 # Create required directories
 runcmd:
@@ -79,7 +85,7 @@ runcmd:
   - chown bxeuser:bxeuser /home/bxeuser/README.txt
 
 # SSH configuration
-ssh_pwauth: false  # Disable password authentication
+ssh_pwauth: true   # Enable password authentication (for XRDP and new users)
 disable_root: true # Disable root login
 
 # Serial console (important for virsh console access)

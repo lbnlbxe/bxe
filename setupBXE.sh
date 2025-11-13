@@ -28,7 +28,10 @@ function installOSPreqs() {
         wget curl vim tree emacs tmux git build-essential sudo
     
     if [ "$IS_NATIVE" = true ]; then
-        DEBIAN_FRONTEND=noninteractive TZ=America/Los_Angeles apt install -y tigervnc-standalone-server xrdp
+        echo "Installing desktop environment and remote access tools..."
+        DEBIAN_FRONTEND=noninteractive TZ=America/Los_Angeles apt install -y \
+            xfce4 xfce4-goodies dbus dbus-x11 \
+            tigervnc-standalone-server xrdp
     fi
 
     echo "2. Installing Firesim Prerequisites"
