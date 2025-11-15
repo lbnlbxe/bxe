@@ -10,7 +10,7 @@ KVM_DIR="${SCRIPT_DIR}/kvm"
 
 # Configuration
 DEFAULT_GOLDEN_NAME="bxe-golden"
-DEFAULT_BRIDGE="br1"
+DEFAULT_NETWORK="bxe"
 DEFAULT_TOOLS_PATH="/tools"
 SSH_USER="bxeuser"
 SSH_TIMEOUT=300  # 5 minutes
@@ -57,7 +57,7 @@ Commands:
 
 Options (create-golden):
   --name <name>           Golden VM name (default: ${DEFAULT_GOLDEN_NAME})
-  --bridge <bridge>       Network bridge (default: ${DEFAULT_BRIDGE})
+  --network <network>     Network bridge (default: ${DEFAULT_NETWORK})
   --tools <path>          Tools path on hypervisor (default: ${DEFAULT_TOOLS_PATH})
   --ssh-key <file>        SSH public key file to add to VM
   --no-virtiofs           Skip virtiofs configuration
@@ -282,7 +282,7 @@ function runInVM() {
 
 function createGoldenImage() {
     local vm_name=$1
-    local bridge=$2
+    local network=$2
     local tools_path=$3
     local ssh_key_file=$4
     local skip_virtiofs=$5
@@ -504,7 +504,7 @@ shift
 
 # Parse options
 GOLDEN_NAME="$DEFAULT_GOLDEN_NAME"
-BRIDGE="$DEFAULT_BRIDGE"
+NETWORK="$DEFAULT_NETWORK"
 TOOLS_PATH="$DEFAULT_TOOLS_PATH"
 SSH_KEY_FILE=""
 SKIP_VIRTIOFS=false
@@ -523,8 +523,8 @@ while [[ $# -gt 0 ]]; do
             SOURCE_VM="$2"
             shift 2
             ;;
-        --bridge)
-            BRIDGE="$2"
+        --network)
+            NETWORK="$2"
             shift 2
             ;;
         --tools)
@@ -593,7 +593,7 @@ case "$COMMAND" in
     create-golden)
         checkSudo
         checkDependencies
-        createGoldenImage "$GOLDEN_NAME" "$BRIDGE" "$TOOLS_PATH" "$SSH_KEY_FILE" "$SKIP_VIRTIOFS" "$SKIP_SETUP"
+        createGoldenImage "$GOLDEN_NAME" "$NETWORK" "$TOOLS_PATH" "$SSH_KEY_FILE" "$SKIP_VIRTIOFS" "$SKIP_SETUP"
         ;;
 
     setup-golden)
@@ -626,7 +626,7 @@ case "$COMMAND" in
         checkDependencies
 
         # Create golden image
-        createGoldenImage "$GOLDEN_NAME" "$BRIDGE" "$TOOLS_PATH" "$SSH_KEY_FILE" "$SKIP_VIRTIOFS" "$SKIP_SETUP"
+        createGoldenImage "$GOLDEN_NAME" "$NETWORK" "$TOOLS_PATH" "$SSH_KEY_FILE" "$SKIP_VIRTIOFS" "$SKIP_SETUP"
 
         # Clone VMs if requested
         if [ $CLONE_COUNT -gt 0 ] || [ ${#TARGET_VMS[@]} -gt 0 ]; then

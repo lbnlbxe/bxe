@@ -3,6 +3,13 @@
 set -e
 set -o pipefail
 
+# Color codes for output
+RED='\033[0;31m'
+GREEN='\033[0;32m'
+BLUE='\033[0;34m'
+YELLOW='\033[1;33m'
+NC='\033[0m' # No Color
+
 export BXE_CONFIG_DIR=${HOME}/.bxe
 # Detect conda location - prefer system conda if available
 if [ -d "/opt/conda" ]; then
@@ -25,13 +32,16 @@ function displayUsage() {
 }
 
 function installBXEConfig() {
+	echo -e "${BLUE}==>${NC} Installing BXE configuration..."
 	SCRIPT_DIR="$(dirname -- "${BASH_SOURCE[0]}")"
 	mkdir -p ${BXE_CONFIG_DIR}
 	if [ -f ${BXE_CONFIG_DIR}/bxe-firesim.sh ]; then
 		DATE_TIME=$(date +"%Y%m%d_%H%M%S")
+		echo -e "${YELLOW}  Backing up existing configuration${NC}"
 		mv ${BXE_CONFIG_DIR}/bxe-firesim.sh ${BXE_CONFIG_DIR}/bxe-firesim-${DATE_TIME}.sh
 	fi
 	cp ${SCRIPT_DIR}/managers/* ${BXE_CONFIG_DIR}/.
+	echo -e "${GREEN}  ✓ BXE configuration installed${NC}"
 
 	# Replace placeholder {{HOME}} with actual home directory in config_build.yaml
 	if [ -f "${BXE_CONFIG_DIR}/config_build.yaml" ]; then
@@ -40,43 +50,49 @@ function installBXEConfig() {
 }
 
 function installProfile() {
+	echo -e "${BLUE}==>${NC} Installing profile configuration..."
 	BXE_SED_STRING="source "${BXE_CONFIG_DIR}"/bxe-firesim.sh"
 	if ! grep -q "${BXE_SED_STRING}" ${HOME}/.bashrc; then
 		sed -i '10a\'"${BXE_SED_STRING}"'\n' ${HOME}/.bashrc
+		echo -e "${GREEN}  ✓ Profile configured${NC}"
+	else
+		echo -e "${YELLOW}  Profile already configured${NC}"
 	fi
 }
 
 function installBXEFireSim() {
+	echo -e "${BLUE}==>${NC} Installing BXE FireSim configurations..."
 	local FIRESIM_DIR=$1
 	cp ${BXE_CONFIG_DIR}/*.yaml ${FIRESIM_DIR}/deploy/.
+	echo -e "${GREEN}  ✓ BXE FireSim configurations installed${NC}"
 }
 
 function installChipyard() {
 	local INSTALL_PATH=$1
 	cd ${HOME}
-    
-    echo "[INFO] Cloning Chipyard repository..."
+
+    echo -e "${BLUE}==>${NC} Cloning Chipyard repository..."
 	git clone https://github.com/ucb-bar/chipyard ${INSTALL_PATH}
 	cd ${INSTALL_PATH}
 
 	CHIPYARD_GIT_HASH="$(git rev-parse --short HEAD)"
 	CHIPYARD_GIT_ROOT="$(pwd)"
-    echo "[INFO] Chipyard cloned at: ${CHIPYARD_GIT_ROOT}"
-    echo "[INFO] Chipyard commit: ${CHIPYARD_GIT_HASH}"
-	
-    if [ -z "${BXE_CONTAINER}" ] ; then
-		echo "[INFO] Building Chipyard natively."
+    echo -e "${GREEN}  ✓ Chipyard cloned at: ${CHIPYARD_GIT_ROOT}${NC}"
+    echo -e "${GREEN}  ✓ Chipyard commit: ${CHIPYARD_GIT_HASH}${NC}"
+
+	if [ -z "${BXE_CONTAINER}" ] ; then
+		echo -e "${BLUE}==>${NC} Building Chipyard natively..."
 		./build-setup.sh ${BASE_CHIPYARD_BLD_ARGS} || :
 	else
-		echo "[INFO] Building Chipyard for a container."
+		echo -e "${BLUE}==>${NC} Building Chipyard for a container..."
 		./build-setup.sh ${BASE_CHIPYARD_BLD_ARGS} ${CONTAINER_CHIPYARD_BLD_ARGS} || :
 	fi
 
 	cd sims/firesim
 	FIRESIM_GIT_HASH="$(git rev-parse --short HEAD)"
 	FIRESIM_GIT_ROOT="$(pwd)"
-	echo "[INFO] FireSim location: ${FIRESIM_GIT_ROOT}"
-    echo "[INFO] FireSim commit: ${FIRESIM_GIT_HASH}"
+	echo -e "${GREEN}  ✓ FireSim location: ${FIRESIM_GIT_ROOT}${NC}"
+    echo -e "${GREEN}  ✓ FireSim commit: ${FIRESIM_GIT_HASH}${NC}"
 
     cd ${HOME}
 
@@ -93,16 +109,17 @@ function installFireSim() {
     local INSTALL_PATH=$1
     cd ${HOME}
 
-    echo "[INFO] Cloning FireSim repository..."
+    echo -e "${BLUE}==>${NC} Cloning FireSim repository..."
     git clone https://github.com/firesim/firesim ${INSTALL_PATH}
     cd ${INSTALL_PATH}
 
     FIRESIM_GIT_HASH="$(git rev-parse --short HEAD)"
     FIRESIM_GIT_ROOT="$(pwd)"
 
-    echo "[INFO] FireSim cloned at: ${FIRESIM_GIT_ROOT}"
-    echo "[INFO] FireSim commit: ${FIRESIM_GIT_HASH}"
+    echo -e "${GREEN}  ✓ FireSim cloned at: ${FIRESIM_GIT_ROOT}${NC}"
+    echo -e "${GREEN}  ✓ FireSim commit: ${FIRESIM_GIT_HASH}${NC}"
 
+    echo -e "${BLUE}==>${NC} Running build setup..."
     ./build-setup.sh
 
     cd ${HOME}
@@ -120,9 +137,25 @@ function installFireSim() {
 
 function checkDirectory() {
 	if [ -d ${ARG_INSTALL_PATH} ]; then
-		echo "Directory exists, cannot override existing direcotry: ${ARG_INSTALL_PATH}"
+		echo -e "${RED}Error: Directory exists, cannot override existing directory: ${ARG_INSTALL_PATH}${NC}"
 		exit 1
 	fi
+}
+
+function checkSSHKey() {
+	echo -e "${BLUE}==>${NC} Checking SSH key..."
+	if [ ! -f "${HOME}/.ssh/firesim.pem" ]; then
+		echo -e "${YELLOW}  SSH key not found, regenerating...${NC}"
+		SCRIPT_DIR="$(dirname -- "${BASH_SOURCE[0]}")"
+		${SCRIPT_DIR}/regenSSHKey.sh
+	else
+		echo -e "${GREEN}  ✓ SSH key already exists${NC}"
+	fi
+
+	echo -e "${BLUE}==>${NC} FireSim Public Key:"
+	echo -e "${YELLOW}$(cat ${HOME}/.ssh/firesim.pem.pub)${NC}"
+	echo ""
+	echo -e "${YELLOW}Please send the public key above to the admin to ensure it exists on the FireSim runner machines.${NC}"
 }
 
 if [ "$#" -lt 1 ] || [ "$#" -gt 2 ]; then
@@ -170,6 +203,11 @@ esac
 
 installProfile
 
-echo "BXE Install Complete!"
+checkSSHKey
+
+echo ""
+echo -e "${GREEN}========================================${NC}"
+echo -e "${GREEN}BXE Install Complete!${NC}"
+echo -e "${GREEN}========================================${NC}"
 
 exit 0

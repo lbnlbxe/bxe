@@ -8,10 +8,12 @@ VM_NAME="bxe-golden"
 CLOUD_IMG_URL="https://cloud-images.ubuntu.com/noble/current/noble-server-cloudimg-amd64.img"
 CLOUD_IMG_NAME="noble-server-cloudimg-amd64.img"
 DISK_NAME="${VM_NAME}.qcow2"
-DISK_SIZE="50G"
+DISK_SIZE="512G"
 MEMORY="16384"  # 16GB
 VCPUS="8"
-NETWORK_BRIDGE="br1"
+NETWORK="bxe"
+# VM_IMAGE_LOCATION="/var/lib/libvirt/images"
+VM_IMAGE_LOCATION="/mnt/vmpool/vms"
 
 SCRIPT_DIR="$(cd "$(dirname "${BASH_SOURCE[0]}")" && pwd)"
 USER_DATA="${SCRIPT_DIR}/bxe-user-data.yaml"
@@ -21,7 +23,8 @@ function displayUsage() {
     echo "Usage: sudo $0 [--image-dir /path/to/images]"
     echo ""
     echo "Options:"
-    echo "  --image-dir   Directory to store VM images (default: /var/lib/libvirt/images)"
+    # echo "  --image-dir   Directory to store VM images (default: /var/lib/libvirt/images)"
+    echo "  --image-dir   Directory to store VM images (default: /mnt/vmpool/vms)"
     echo ""
     echo "Example:"
     echo "  sudo $0 --image-dir /home/images"
@@ -152,7 +155,7 @@ function createVM() {
     fi
 
     virt_cmd="${virt_cmd} \
-        --network bridge=${NETWORK_BRIDGE},model=virtio \
+        --network network=${NETWORK},model=virtio \
         --graphics none \
         --console pty,target_type=serial \
         --osinfo ubuntu24.04 \
@@ -238,7 +241,7 @@ checkDependencies
 checkCloudInitConfigs
 
 # Parse arguments
-IMAGE_DIR="/var/lib/libvirt/images"
+IMAGE_DIR=$VM_IMAGE_LOCATION
 while [[ $# -gt 0 ]]; do
     case $1 in
         --image-dir)

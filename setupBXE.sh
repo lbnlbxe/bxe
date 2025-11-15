@@ -3,6 +3,13 @@
 set -e
 # set -x
 
+# Color codes for output
+RED='\033[0;31m'
+GREEN='\033[0;32m'
+BLUE='\033[0;34m'
+YELLOW='\033[1;33m'
+NC='\033[0m' # No Color
+
 function displayUsage() {
     echo "Usage: sudo $0"
     echo "  NOTE : This script expects \$BXE_CONTAINER if being run in a container."
@@ -11,7 +18,7 @@ function displayUsage() {
 function checkSudo() {
 	# display usage if the script is not run as root user
 	if [[ "${EUID}" -ne 0 ]]; then
-		echo "This script must be run with super-user privileges."
+		echo -e "${RED}Error: This script must be run with super-user privileges.${NC}"
 		displayUsage
 		exit 1
 	fi
@@ -19,46 +26,46 @@ function checkSudo() {
 
 function installOSPreqs() {
     local IS_NATIVE=$1
-    echo "----- Installing OS Prequisites -----"
+    echo -e "${BLUE}==>${NC} Installing OS Prerequisites..."
     apt update
-    echo "1. Installing General Prerequisites"
+    echo -e "${BLUE}  1. Installing General Prerequisites${NC}"
     # DEBIAN_FRONTEND=noninteractive TZ=America/Los_Angeles apt install -y nfs-common openssh-server libguestfs-tools \
         # wget curl vim tree emacs tmux git build-essential sudo
     DEBIAN_FRONTEND=noninteractive TZ=America/Los_Angeles apt install -y openssh-server libguestfs-tools \
         wget curl vim tree emacs tmux git build-essential sudo
-    
+
     if [ "$IS_NATIVE" = true ]; then
-        echo "Installing desktop environment and remote access tools..."
+        echo -e "${BLUE}  Installing desktop environment and remote access tools...${NC}"
         DEBIAN_FRONTEND=noninteractive TZ=America/Los_Angeles apt install -y \
             xfce4 xfce4-goodies dbus dbus-x11 \
             tigervnc-standalone-server xrdp
     fi
 
-    echo "2. Installing Firesim Prerequisites"
+    echo -e "${BLUE}  2. Installing FireSim Prerequisites${NC}"
     DEBIAN_FRONTEND=noninteractive TZ=America/Los_Angeles apt install -y libc6-dev screen libtinfo-dev
 
-    # echo "3. Installing Xilinx Prequisites"
+    # echo "3. Installing Xilinx Prerequisites"
     # DEBIAN_FRONTEND=noninteractive TZ=America/Los_Angeles apt install -y libtinfo5 libncurses5 python3-pip #libstdc++6:i386 \
     #    libgtk2.0-0:i386 dpkg-dev:i386
 
     # Clear apt cache
     rm -rf /var/lib/apt/lists/*
 
-    echo "----- OS Prequisites Complete -----"
+    echo -e "${GREEN}✓ OS Prerequisites installed${NC}"
 }
 
 function addToolsNFS() {
-    echo "----- Adding Tools NFS Mount -----"
+    echo -e "${BLUE}==>${NC} Adding Tools NFS Mount..."
     mkdir -p /tools
     sed -i -e '$avizion.lbl.gov:/mnt/vmpool/nfs/tools\t/tools\tnfs\tdefaults,timeo=900,retrans=5,_netdev\t0\t0\n' /etc/fstab
     systemctl daemon-reload
     mount /tools
-    echo "----- Tools NFS Mount Complete -----"
+    echo -e "${GREEN}✓ Tools NFS Mount configured${NC}"
 }
 
 function installBXEScripts() {
     local SOURCE_DIR=$1
-    echo "----- Installing BXE Scripts -----"
+    echo -e "${BLUE}==>${NC} Installing BXE Scripts..."
     mkdir -p /opt/bxe
     mkdir -p /opt/bxe/managers
 
@@ -84,75 +91,72 @@ function installBXEScripts() {
         cp "${SOURCE_DIR}"/managers/* /opt/bxe/managers/.
     fi
 
-    echo "----- BXE Scripts Install Complete -----"
+    echo -e "${GREEN}✓ BXE Scripts installed${NC}"
 }
 
 function installGuestMountService() {
-    echo "----- Adding Guest Mount Service -----"
+    echo -e "${BLUE}==>${NC} Adding Guest Mount Service..."
     ln -sf /opt/bxe/firesim-guestmount.service /etc/systemd/system/.
     systemctl daemon-reload
     systemctl enable --now firesim-guestmount
-    echo "----- Guest Mount Service Complete -----"
+    echo -e "${GREEN}✓ Guest Mount Service configured${NC}"
 }
 
 function installConda() {
-    echo "----- Installing Conda -----"
+    echo -e "${BLUE}==>${NC} Installing Conda..."
     if ! command -v conda 2>&1 >/dev/null; then
-        echo "conda is not installed. Installing Miniforge3..."
+        echo -e "${YELLOW}  conda not installed, installing Miniforge3...${NC}"
         cd /tmp
         wget https://github.com/conda-forge/miniforge/releases/latest/download/Miniforge3-Linux-x86_64.sh
         bash Miniforge3-Linux-x86_64.sh -b -p "/opt/conda"
         rm Miniforge3-Linux-x86_64.sh
         source "/opt/conda/etc/profile.d/conda.sh"
         ln -sf /opt/conda/etc/profile.d/conda.sh /etc/profile.d/conda.sh
+        echo -e "${GREEN}  ✓ Miniforge3 installed${NC}"
+    else
+        echo -e "${YELLOW}  conda already installed${NC}"
     fi
-    echo "----- Conda Install Complete -----"
+    echo -e "${GREEN}✓ Conda ready${NC}"
 }
 
 function setupToolsVirtioFS() {
-    echo "----- Setting up virtiofs mount for /tools -----"
+    echo -e "${BLUE}==>${NC} Setting up virtiofs mount for /tools..."
     mkdir -p /tools
 
     # Add to fstab if not already present
     if ! grep -q "virtiofs" /etc/fstab; then
         echo "tools  /tools  virtiofs  ro,defaults  0  0" >> /etc/fstab
-        echo "Added /tools virtiofs mount to /etc/fstab"
+        echo -e "${YELLOW}  Added /tools virtiofs mount to /etc/fstab${NC}"
     else
-        echo "/tools virtiofs mount already in /etc/fstab"
+        echo -e "${YELLOW}  /tools virtiofs mount already in /etc/fstab${NC}"
     fi
 
     # Try to mount (will succeed if VM XML has filesystem defined)
     if ! mountpoint -q /tools; then
         if mount /tools 2>/dev/null; then
-            echo "/tools mounted successfully via virtiofs"
+            echo -e "${GREEN}  ✓ /tools mounted successfully via virtiofs${NC}"
         else
-            echo "Note: /tools will mount at next boot (requires virtiofs in VM XML)"
-            echo "      Add filesystem device to VM with: virsh edit <vm-name>"
+            echo -e "${YELLOW}  Note: /tools will mount at next boot (requires virtiofs in VM XML)${NC}"
+            echo -e "${YELLOW}        Add filesystem device to VM with: virsh edit <vm-name>${NC}"
         fi
     else
-        echo "/tools already mounted"
+        echo -e "${YELLOW}  /tools already mounted${NC}"
     fi
 
-    echo "----- virtiofs mount setup complete -----"
+    echo -e "${GREEN}✓ virtiofs mount setup complete${NC}"
 }
 
 # Determine script source directory
 SETUP_SCRIPT_DIR="$(cd "$(dirname "${BASH_SOURCE[0]}")" && pwd)"
 
-if [ -z "${BXE_CONTAINER}" ]; then
-    checkSudo
-    installOSPreqs true
-    installConda
-    setupToolsVirtioFS
-    installBXEScripts "${SETUP_SCRIPT_DIR}"
-    installGuestMountService
-else
-    checkSudo
-    installOSPreqs false
-    installConda
-    # Container doesn't use virtiofs (uses Docker volume mounts)
-    # installBXEScripts "${SETUP_SCRIPT_DIR}"
-    # installGuestMountService
-fi        
+checkSudo
+installOSPreqs true
+installConda
+setupToolsVirtioFS
+installBXEScripts "${SETUP_SCRIPT_DIR}"
+installGuestMountService
 
-echo "BXE Setup Complete!"
+echo ""
+echo -e "${GREEN}========================================${NC}"
+echo -e "${GREEN}BXE Setup Complete!${NC}"
+echo -e "${GREEN}========================================${NC}"
