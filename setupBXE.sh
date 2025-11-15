@@ -146,6 +146,64 @@ function setupToolsVirtioFS() {
     echo -e "${GREEN}✓ virtiofs mount setup complete${NC}"
 }
 
+function setupFireSimGroup() {
+    echo -e "${BLUE}==>${NC} Setting up firesim group and sudoers..."
+
+    # Check if firesim group exists, create if not
+    if ! getent group firesim >/dev/null; then
+        echo -e "${YELLOW}  firesim group not found, creating...${NC}"
+        groupadd firesim
+        echo -e "${GREEN}  ✓ firesim group created${NC}"
+    else
+        echo -e "${YELLOW}  firesim group already exists${NC}"
+    fi
+
+    # Check if sudoers file exists, create if not
+    if [ ! -f "/etc/sudoers.d/firesim" ]; then
+        echo -e "${YELLOW}  Creating sudoers file for firesim...${NC}"
+        echo "%firesim ALL=(ALL) NOPASSWD: /usr/local/bin/firesim-*" > /etc/sudoers.d/firesim
+        chmod 440 /etc/sudoers.d/firesim
+        echo -e "${GREEN}  ✓ firesim sudoers file created${NC}"
+    else
+        echo -e "${YELLOW}  firesim sudoers file already exists${NC}"
+    fi
+
+    echo -e "${GREEN}✓ firesim group setup complete${NC}"
+}
+
+function installFireSimScripts() {
+    echo -e "${BLUE}==>${NC} Installing FireSim scripts..."
+    local TEMP_FIRESIM_DIR=$(mktemp -d)
+    echo -e "${YELLOW}  Cloning FireSim repository to ${TEMP_FIRESIM_DIR}...${NC}"
+
+    cd "${TEMP_FIRESIM_DIR}"
+    git clone https://github.com/firesim/firesim .
+
+    # Copy sudo scripts
+    if [ -d "deploy/sudo-scripts" ]; then
+        echo -e "${YELLOW}  Copying deploy/sudo-scripts...${NC}"
+        cp deploy/sudo-scripts/* /usr/local/bin/
+    fi
+
+    # Copy xilinx alveo scripts
+    if [ -d "platforms/xilinx_alveo_u250/scripts" ]; then
+        echo -e "${YELLOW}  Copying platforms/xilinx_alveo_u250/scripts...${NC}"
+        cp platforms/xilinx_alveo_u250/scripts/* /usr/local/bin/
+    fi
+
+    # Set permissions and group
+    echo -e "${YELLOW}  Setting permissions and group for firesim scripts...${NC}"
+    chmod 755 /usr/local/bin/firesim*
+    chgrp firesim /usr/local/bin/firesim*
+
+    # Clean up temporary directory
+    echo -e "${YELLOW}  Cleaning up temporary files...${NC}"
+    cd /
+    rm -rf "${TEMP_FIRESIM_DIR}"
+
+    echo -e "${GREEN}✓ FireSim scripts installed${NC}"
+}
+
 # Determine script source directory
 SETUP_SCRIPT_DIR="$(cd "$(dirname "${BASH_SOURCE[0]}")" && pwd)"
 
@@ -155,6 +213,8 @@ installConda
 setupToolsVirtioFS
 installBXEScripts "${SETUP_SCRIPT_DIR}"
 installGuestMountService
+setupFireSimGroup
+installFireSimScripts
 
 echo ""
 echo -e "${GREEN}========================================${NC}"
