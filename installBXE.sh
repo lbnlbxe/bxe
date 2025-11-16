@@ -18,6 +18,7 @@ else
     export CONDA_ROOT="${HOME}/.conda"
 fi
 export BASE_CHIPYARD_BLD_ARGS=""
+export NATIVE_CHIPYARD_BLD_ARGS="--skip 9"
 export CONTAINER_CHIPYARD_BLD_ARGS="--skip 9 --skip 11"
 
 function displayUsage() {
@@ -82,7 +83,7 @@ function installChipyard() {
 
 	if [ -z "${BXE_CONTAINER}" ] ; then
 		echo -e "${BLUE}==>${NC} Building Chipyard natively..."
-		./build-setup.sh ${BASE_CHIPYARD_BLD_ARGS} || :
+		./build-setup.sh ${BASE_CHIPYARD_BLD_ARGS} ${NATIVE_CHIPYARD_BLD_ARGS} || :
 	else
 		echo -e "${BLUE}==>${NC} Building Chipyard for a container..."
 		./build-setup.sh ${BASE_CHIPYARD_BLD_ARGS} ${CONTAINER_CHIPYARD_BLD_ARGS} || :
