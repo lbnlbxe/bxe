@@ -142,6 +142,42 @@ function checkDirectory() {
 	fi
 }
 
+function getInstallPath() {
+	local DEFAULT_NAME=$1
+	local PRIMARY_PATH="${HOME}/${DEFAULT_NAME}"
+
+	# If primary path doesn't exist, use it
+	if [ ! -d "${PRIMARY_PATH}" ]; then
+		INSTALL_PATH="${PRIMARY_PATH}"
+		echo -e "${BLUE}==>${NC} Installation Path: ${INSTALL_PATH}"
+		return
+	fi
+
+	# Primary path exists, prompt for alternative
+	echo -e "${BLUE}==>${NC} Installation Path Configuration"
+	echo -e "${YELLOW}  Directory ${PRIMARY_PATH} already exists${NC}"
+
+	local CURRENT_DATE=$(date +"%Y%m%d%H%M%S")
+	local DEFAULT_DATED_PATH="${HOME}/${DEFAULT_NAME}-${CURRENT_DATE}"
+
+	echo -e "${YELLOW}  Default alternative: ${DEFAULT_DATED_PATH}${NC}"
+	read -r -p "Enter installation path (or press Enter to use default): " CUSTOM_PATH
+
+	if [ -z "${CUSTOM_PATH}" ]; then
+		INSTALL_PATH="${DEFAULT_DATED_PATH}"
+		echo -e "${GREEN}  ✓ Using dated path: ${INSTALL_PATH}${NC}"
+	else
+		INSTALL_PATH="${CUSTOM_PATH}"
+		echo -e "${GREEN}  ✓ Using custom path: ${INSTALL_PATH}${NC}"
+	fi
+
+	# Check if the chosen directory already exists
+	if [ -d "${INSTALL_PATH}" ]; then
+		echo -e "${RED}Error: Directory already exists: ${INSTALL_PATH}${NC}"
+		exit 1
+	fi
+}
+
 function checkSSHKey() {
 	echo -e "${BLUE}==>${NC} Checking SSH key..."
 	if [ ! -f "${HOME}/.ssh/firesim.pem" ]; then
@@ -164,25 +200,30 @@ if [ "$#" -lt 1 ] || [ "$#" -gt 2 ]; then
 	exit 1
 fi
 
-ARG_INSTALL_PATH=${2:-${ARG_INSTALLER}}
 ARG_INSTALLER=$1
+ARG_INSTALL_PATH=${2:-${ARG_INSTALLER}}
 
 case "$ARG_INSTALLER" in
 	"chipyard")
-		checkDirectory
+		getInstallPath "chipyard"
 		installBXEConfig
-		installChipyard ${ARG_INSTALL_PATH}
+		installChipyard ${INSTALL_PATH}
 		;;
 
 	"firesim")
-		checkDirectory
+		getInstallPath "firesim"
 		installBXEConfig
-		installFireSim ${ARG_INSTALL_PATH}
+		installFireSim ${INSTALL_PATH}
 		;;
 
 	"bxe")
+		if [ -z "${ARG_INSTALL_PATH}" ]; then
+			echo -e "${RED}Error: bxe installation requires a FireSim path argument${NC}"
+			displayUsage
+			exit 1
+		fi
 		if [ ! -d ${ARG_INSTALL_PATH}/deploy ]; then
-			echo "Provided FireSim path does not exist: ${ARG_INSTALL_PATH}/deploy"
+			echo -e "${RED}Error: Provided FireSim path does not exist: ${ARG_INSTALL_PATH}/deploy${NC}"
 			displayUsage
 			exit 1
 		fi
@@ -195,7 +236,7 @@ case "$ARG_INSTALLER" in
 		;;
 
 	*)
-		echo "Invalid installer: ${ARG_INSTALLER}"
+		echo -e "${RED}Error: Invalid installer: ${ARG_INSTALLER}${NC}"
 		displayUsage
 		exit 1
 		;;
