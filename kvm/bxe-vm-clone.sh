@@ -36,7 +36,7 @@ function sysPrep () {
 	virt-sysprep -d $VM_NAME \
 		--operations user-account,defaults \
 		--hostname $NEW_HOST_NAME \
-		--keep-user-accounts bxeuser \
+		--keep-user-accounts bxeadmin,bxeuser \
 		--firstboot-command 'dpkg-reconfigure openssh-server && ufw allow ssh' \
 		--firstboot-command 'systemctl enable --now serial-getty@ttyS0.service' \
 		--copy-in ..:/opt/bxe
