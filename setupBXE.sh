@@ -10,6 +10,14 @@ BLUE='\033[0;34m'
 YELLOW='\033[1;33m'
 NC='\033[0m' # No Color
 
+# Desired content for /etc/sudoers.d/firesim
+desired_firesim_sudoers=$(
+cat <<'EOF'
+%firesim ALL=(ALL) NOPASSWD: /usr/local/bin/firesim-*
+%firesim ALL=(ALL) NOPASSWD: /usr/bin/mount
+EOF
+)
+
 function displayUsage() {
     echo "Usage: sudo $0"
     echo "  NOTE : This script expects \$BXE_CONTAINER if being run in a container."
@@ -158,14 +166,14 @@ function setupFireSimGroup() {
         echo -e "${YELLOW}  firesim group already exists${NC}"
     fi
 
-    # Check if sudoers file exists, create if not
-    if [ ! -f "/etc/sudoers.d/firesim" ]; then
-        echo -e "${YELLOW}  Creating sudoers file for firesim...${NC}"
-        echo "%firesim ALL=(ALL) NOPASSWD: /usr/local/bin/firesim-*" > /etc/sudoers.d/firesim
+    # If the file is missing or its contents differ, replace it
+    if [ ! -f /etc/sudoers.d/firesim ] || ! diff -q <(printf "%s\n" "$desired_firesim_sudoers") /etc/sudoers.d/firesim >/dev/null; then
+        echo -e "${YELLOW}  Updating sudoers file for firesim...${NC}"
+        printf "%s\n" "$desired_firesim_sudoers" > /etc/sudoers.d/firesim
         chmod 440 /etc/sudoers.d/firesim
-        echo -e "${GREEN}  ✓ firesim sudoers file created${NC}"
+        echo -e "${GREEN}  ✓ firesim sudoers file updated${NC}"
     else
-        echo -e "${YELLOW}  firesim sudoers file already exists${NC}"
+        echo -e "${YELLOW}  firesim sudoers file already matches${NC}"
     fi
 
     echo -e "${GREEN}✓ firesim group setup complete${NC}"

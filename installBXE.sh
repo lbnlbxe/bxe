@@ -18,7 +18,7 @@ else
     export CONDA_ROOT="${HOME}/.conda"
 fi
 export BASE_CHIPYARD_BLD_ARGS=""
-export NATIVE_CHIPYARD_BLD_ARGS="--skip 9"
+export NATIVE_CHIPYARD_BLD_ARGS=""
 export CONTAINER_CHIPYARD_BLD_ARGS="--skip 9 --skip 11"
 
 function displayUsage() {
