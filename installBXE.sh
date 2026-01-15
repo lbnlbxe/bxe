@@ -50,7 +50,24 @@ function installBXEConfig() {
 	fi
 }
 
+function commentInteractiveCheck() {
+	echo -e "${BLUE}==>${NC} Checking for interactive shell guard in .bashrc..."
+
+	# Check if the interactive shell check exists and is not already commented
+	if grep -Pzo '(?s)^case \$- in\s+\*i\*\) ;;\s+\*\) return;;\s+esac' ${HOME}/.bashrc > /dev/null 2>&1; then
+		echo -e "${YELLOW}  Found uncommented interactive shell guard, commenting it out...${NC}"
+		# Comment out the case statement block
+		sed -i '/^case \$- in$/,/^esac$/ s/^/# /' ${HOME}/.bashrc
+		echo -e "${GREEN}  ✓ Interactive shell guard commented out${NC}"
+	elif grep -Pzo '(?s)^# case \$- in\s+# \s+\*i\*\) ;;\s+# \s+\*\) return;;\s+# esac' ${HOME}/.bashrc > /dev/null 2>&1; then
+		echo -e "${YELLOW}  Interactive shell guard already commented out${NC}"
+	else
+		echo -e "${YELLOW}  Interactive shell guard not found in .bashrc${NC}"
+	fi
+}
+
 function installProfile() {
+	commentInteractiveCheck
 	echo -e "${BLUE}==>${NC} Installing profile configuration..."
 	BXE_SED_STRING="source "${BXE_CONFIG_DIR}"/bxe-firesim.sh"
 	if ! grep -q "${BXE_SED_STRING}" ${HOME}/.bashrc; then

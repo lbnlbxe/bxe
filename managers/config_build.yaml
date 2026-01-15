@@ -6,7 +6,7 @@ build_farm:
   base_recipe: build-farm-recipes/externally_provisioned.yaml
   recipe_arg_overrides:
     # REQUIRED: (replace this) default location of build directory on build host.
-    default_build_dir: {{HOME}}/FIRESIM_BUILD_DIR
+    default_build_dir: /home/bxeuser/FIRESIM_BUILD_DIR
     # REQUIRED: List of IP addresses (or "localhost"). Each can have an OPTIONAL
     # argument, called "override_build_dir", specifying to override the default
     # build directory.
@@ -21,7 +21,8 @@ build_farm:
     #     - "222.222.2.222":
     #         override_build_dir: /scratch/specific-build-host-build-dir
     build_farm_hosts:
-      - localhost
+      - bxeuser@vizion.lbl.gov
+      - bxeuser@wilson.lbl.gov
 
 builds_to_run:
   # this section references builds defined in config_build_recipes.yaml
