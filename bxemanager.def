@@ -1,0 +1,27 @@
+Bootstrap: docker
+# From: condaforge/miniforge3
+From: ubuntu:24.04
+
+%environment
+    TINI_SUBREAPER=true
+
+%setup
+    mkdir -p ${APPTAINER_ROOTFS}/opt/bxe
+
+%files
+    setupBXE.sh /opt/bxe/setupBXE.sh
+    installBXE.sh /opt/bxe/installBXE.sh
+    managers /opt/bxe/managers
+
+%post
+    /opt/bxe/setupBXE.sh container
+    . "/opt/conda/etc/profile.d/conda.sh"
+    . "/opt/conda/etc/profile.d/mamba.sh"
+    export CONDA_ALWAYS_YES="true"
+    echo ${CONDA_ALWAYS_YES}
+    /opt/bxe/installBXE.sh chipyard /opt/bxe/chipyard
+    unset CONDA_ALWAYS_YES
+
+%labels
+    Author ffard@lbl.gov
+    Version v2.3.0

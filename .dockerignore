@@ -1,0 +1,31 @@
+# Git files
+.git
+.gitignore
+
+# Build artifacts
+*.sif
+bxemanager.sif
+
+# Documentation
+*.md
+README*
+
+# Apptainer/Singularity files (not needed for Docker builds)
+*.def
+bxemanager.def
+
+# Test files
+test/
+tests/
+
+# Scripts not needed in container
+firesim-guestmount.service
+firesim-guestmount.sh
+regenSSHKey.sh
+setupBXE.sh
+
+# KVM files (if not needed)
+kvm/
+
+# Runner files (if not needed in base image)
+runners/

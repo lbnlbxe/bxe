@@ -1,0 +1,98 @@
+#cloud-config
+# BXE Manager VM - Cloud-Init Configuration
+# This automates initial VM setup for golden image creation
+
+# Hostname (will be overridden by virt-sysprep during cloning)
+hostname: bxe-golden
+
+# Create firesim group for users who need FireSim access
+groups:
+  - firesim
+
+# User configuration
+users:
+  - name: bxeuser
+    groups: [sudo, firesim]
+    shell: /bin/bash
+    lock_passwd: true  # Disable password login for bxeuser (SSH key only)
+    ssh_authorized_keys:
+      - ssh-rsa AAAAB3NzaC1yc2E... # Replace with your public key
+
+# System timezone
+timezone: America/Los_Angeles
+
+# Sudo configuration - allow firesim group members to run commands without password
+write_files:
+  - path: /etc/sudoers.d/90-firesim-group
+    permissions: '0440'
+    content: |
+      # Allow members of firesim group to run all commands without password
+      %firesim ALL=(ALL) NOPASSWD:ALL
+
+# Package management
+package_update: true
+package_upgrade: true
+
+# Install base packages (minimal set - setupBXE.sh will add more)
+packages:
+  - openssh-server
+  - git
+  - wget
+  - curl
+  - vim
+  - tmux
+  - build-essential
+  - python3-pip
+  # Desktop environment - Xfce (matches Xubuntu)
+  - xfce4
+  - xfce4-goodies
+  - dbus
+  - dbus-x11
+
+# Create required directories
+runcmd:
+  # Create /tools mount point for virtiofs
+  - mkdir -p /tools
+
+  # Create welcome message for users
+  - |
+    cat > /home/bxeuser/README.txt << 'EOF'
+    Welcome to BXE!
+
+    To set up your personal Chipyard/FireSim environment, run:
+
+      /opt/bxe/installBXE.sh chipyard ~/chipyard
+
+    This will:
+      1. Clone Chipyard from GitHub to your home directory
+      2. Run build-setup.sh (takes 30-60 minutes)
+      3. Configure your environment in ~/.bxe/
+
+    After installation completes:
+      source ~/.bxe/bxe-firesim.sh
+      cd ~/chipyard/sims/firesim
+      firesim --help
+
+    For more options:
+      /opt/bxe/installBXE.sh --help
+
+    ---
+    Note: You are a member of the 'firesim' group, which provides
+    sudo access without password. New users should be added to this
+    group with: sudo usermod -aG firesim <username>
+
+    EOF
+  - chown bxeuser:bxeuser /home/bxeuser/README.txt
+
+# SSH configuration
+ssh_pwauth: true   # Enable password authentication (for XRDP and new users)
+disable_root: true # Disable root login
+
+# Serial console (important for virsh console access)
+bootcmd:
+  - systemctl enable serial-getty@ttyS0.service
+
+# Power state - keep running after cloud-init completes
+power_state:
+  mode: reboot
+  condition: true
