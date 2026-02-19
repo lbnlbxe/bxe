@@ -10,6 +10,10 @@ BLUE='\033[0;34m'
 YELLOW='\033[1;33m'
 NC='\033[0m' # No Color
 
+# Xilinx tools version to use for prerequisite installation.
+# Override at runtime, for example: XILINX_TOOLS_VERSION=2025.1 sudo ./setupBXE.sh
+XILINX_TOOLS_VERSION="${XILINX_TOOLS_VERSION:-2023.1}"
+
 # Desired content for /etc/sudoers.d/firesim
 desired_firesim_sudoers=$(
 cat <<'EOF'
@@ -32,13 +36,35 @@ function checkSudo() {
 	fi
 }
 
+function checkXilinxTools() {
+    echo -e "${BLUE}==>${NC} Checking Xilinx tools in /tools..."
+    local version_year
+    version_year=$(echo "${XILINX_TOOLS_VERSION}" | cut -d'.' -f1)
+
+    if [[ "${version_year}" -ge 2025 ]]; then
+        XILINX_TOOLS_INSTALL_PATH="/tools/Xilinx"
+        if [[ ! -f "${XILINX_TOOLS_INSTALL_PATH}/XILINX_TOOLS_VERSION" ]]; then
+            echo -e "${RED}Error: Xilinx tools not found at ${XILINX_TOOLS_INSTALL_PATH}/XILINX_TOOLS_VERSION${NC}"
+            echo -e "${RED}       Missing tools: expected Xilinx ${XILINX_TOOLS_VERSION} installation at ${XILINX_TOOLS_INSTALL_PATH}${NC}"
+            exit 1
+        fi
+    else
+        XILINX_TOOLS_INSTALL_PATH="/tools/Xilinx/Vitis"
+        if [[ ! -f "${XILINX_TOOLS_INSTALL_PATH}/XILINX_TOOLS_VERSION" ]]; then
+            echo -e "${RED}Error: Xilinx tools not found at ${XILINX_TOOLS_INSTALL_PATH}/XILINX_TOOLS_VERSION${NC}"
+            echo -e "${RED}       Missing tools: expected Xilinx ${XILINX_TOOLS_VERSION} installation at ${XILINX_TOOLS_INSTALL_PATH}${NC}"
+            exit 1
+        fi
+    fi
+
+    echo -e "${GREEN}✓ Xilinx tools found at ${XILINX_TOOLS_INSTALL_PATH}${NC}"
+}
+
 function installOSPreqs() {
     local IS_NATIVE=$1
     echo -e "${BLUE}==>${NC} Installing OS Prerequisites..."
     apt update
     echo -e "${BLUE}  1. Installing General Prerequisites${NC}"
-    # DEBIAN_FRONTEND=noninteractive TZ=America/Los_Angeles apt install -y nfs-common openssh-server libguestfs-tools \
-        # wget curl vim tree emacs tmux git build-essential sudo
     DEBIAN_FRONTEND=noninteractive TZ=America/Los_Angeles apt install -y openssh-server libguestfs-tools \
         wget curl vim tree emacs tmux git build-essential sudo
 
@@ -52,23 +78,32 @@ function installOSPreqs() {
     echo -e "${BLUE}  2. Installing FireSim Prerequisites${NC}"
     DEBIAN_FRONTEND=noninteractive TZ=America/Los_Angeles apt install -y libc6-dev screen libtinfo-dev
 
-    # echo "3. Installing Xilinx Prerequisites"
-    # DEBIAN_FRONTEND=noninteractive TZ=America/Los_Angeles apt install -y libtinfo5 libncurses5 python3-pip #libstdc++6:i386 \
-    #    libgtk2.0-0:i386 dpkg-dev:i386
+    echo -e "${BLUE}  3. Installing Xilinx Prerequisites${NC}"
+    DEBIAN_FRONTEND=noninteractive TZ=America/Los_Angeles apt install -y libtinfo6
+    if [[ ! -e "/usr/lib/x86_64-linux-gnu/libtinfo.so.5" ]]; then
+        ln -s /usr/lib/x86_64-linux-gnu/libtinfo.so.6 /usr/lib/x86_64-linux-gnu/libtinfo.so.5
+        echo -e "${YELLOW}  Created libtinfo.so.5 -> libtinfo.so.6 symlink${NC}"
+    else
+        echo -e "${YELLOW}  libtinfo.so.5 already exists, skipping symlink${NC}"
+    fi
+    local version_year
+    version_year=$(echo "${XILINX_TOOLS_VERSION}" | cut -d'.' -f1)
+    local install_libs_path
+    if [[ "${version_year}" -ge 2025 ]]; then
+        install_libs_path="${XILINX_TOOLS_INSTALL_PATH}/Vivado/scripts/installLibs.sh"
+    else
+        install_libs_path="${XILINX_TOOLS_INSTALL_PATH}/scripts/installLibs.sh"
+    fi
+    if [[ ! -f "${install_libs_path}" ]]; then
+        echo -e "${RED}Error: installLibs.sh not found at ${install_libs_path}${NC}"
+        exit 1
+    fi
+    bash "${install_libs_path}"
 
     # Clear apt cache
     rm -rf /var/lib/apt/lists/*
 
     echo -e "${GREEN}✓ OS Prerequisites installed${NC}"
-}
-
-function addToolsNFS() {
-    echo -e "${BLUE}==>${NC} Adding Tools NFS Mount..."
-    mkdir -p /tools
-    sed -i -e '$avizion.lbl.gov:/mnt/vmpool/nfs/tools\t/tools\tnfs\tdefaults,timeo=900,retrans=5,_netdev\t0\t0\n' /etc/fstab
-    systemctl daemon-reload
-    mount /tools
-    echo -e "${GREEN}✓ Tools NFS Mount configured${NC}"
 }
 
 function installBXEScripts() {
@@ -216,9 +251,10 @@ function installFireSimScripts() {
 SETUP_SCRIPT_DIR="$(cd "$(dirname "${BASH_SOURCE[0]}")" && pwd)"
 
 checkSudo
+setupToolsVirtioFS
+checkXilinxTools
 installOSPreqs true
 installConda
-setupToolsVirtioFS
 installBXEScripts "${SETUP_SCRIPT_DIR}"
 installGuestMountService
 setupFireSimGroup
