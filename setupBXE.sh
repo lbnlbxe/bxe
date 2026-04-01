@@ -18,8 +18,14 @@ XILINX_TOOLS_VERSION="${XILINX_TOOLS_VERSION:-2023.1}"
 desired_firesim_sudoers=$(
 cat <<'EOF'
 %firesim ALL=(ALL) NOPASSWD: /usr/local/bin/firesim-*
-%firesim ALL=(ALL) NOPASSWD: /usr/bin/mount
 EOF
+)
+
+# Desired Rename FireSim Scripts
+declare -a rename_firesim_scripts=(
+    "firesim-mount"
+    "firesim-mount-with-uid-gid"
+    "firesim-unmount"
 )
 
 function displayUsage() {
@@ -239,6 +245,23 @@ function installFireSimScripts() {
     chmod 755 /usr/local/bin/firesim*
     chgrp firesim /usr/local/bin/firesim*
 
+    # Hiding firesim scripts to force the use of guestmount
+    echo -e "${YELLOW}  Hiding firesim-mount* and firesim-unmount to force the use of guestmount...${NC}"
+    cd /usr/local/bin
+    for src in "${rename_firesim_scripts[@]}"; do
+        dst="O_${src}"
+        if [[ -f "$src" ]]; then
+            echo -e "${BLUE}  Renaming \"${src}\" → \"${dst}\""
+            if mv -- "$src" "$dst"; then
+                echo -e "${GREEN}  Renamed \"${src}\" to \"${dst}\" ${NC}"
+            else
+                echo -e "${RED}  Renamed failed for \"${src}\" (mv returned $?).${NC}"
+            fi
+        else
+            echo -e "${YELLOW}  \"${src}\" does not exist or is not a regular file - nothing to do."
+        fi
+    done
+    
     # Clean up temporary directory
     echo -e "${YELLOW}  Cleaning up temporary files...${NC}"
     cd /
