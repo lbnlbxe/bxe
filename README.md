@@ -10,6 +10,14 @@ sudo ./setupBXE.sh
 
 The `setupBXE.sh` script must be run with root privileges and installs all system-level prerequisites required for BXE and FireSim. This includes installing essential OS packages (openssh-server, libguestfs-tools, build-essential), setting up Conda (Miniforge3) in `/opt/conda`, configuring virtiofs mounts for `/tools` directories, creating the `firesim` group with appropriate sudoers permissions, and installing FireSim's privileged scripts. The script also installs BXE management scripts to `/opt/bxe` and sets up the guestmount service for handling disk image operations. For native installations, it optionally installs desktop environment components (XFCE4) and remote access tools (VNC, XRDP).
 
+## Adding BXE Users
+
+```bash
+sudo ./add-bxe-user.sh <username>
+```
+
+Runs as root, `add-bxe-users.sh` checks that the groups `firesim` and `kvm` exist, creates the user with `adduser`, adds the user to those groups, and reports success. If the aforementioned groups do not exist, the script exits prior to changing the system.
+
 ## Setting Up the BXE User Environment
 
 ```bash
