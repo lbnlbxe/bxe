@@ -29,7 +29,9 @@ declare -a rename_firesim_scripts=(
 )
 
 function displayUsage() {
-    echo "Usage: sudo $0"
+    echo "Usage: sudo $0 [manager|runner]"
+    echo "  manager (default) : Set up tools via virtiofs mount (for BXE managers)"
+    echo "  runner            : Set up tools via NFS mount (for BXE runners)"
     echo "  NOTE : This script expects \$BXE_CONTAINER if being run in a container."
 }
 
@@ -168,31 +170,64 @@ function installConda() {
     echo -e "${GREEN}✓ Conda ready${NC}"
 }
 
-function setupToolsVirtioFS() {
-    echo -e "${BLUE}==>${NC} Setting up virtiofs mount for /tools..."
+function setupTools() {
+    local type=$1
+    local fstab_entry fstab_grep description mount_note mount_hint
+
+    case "$type" in
+        virtiofs)
+            fstab_entry="tools  /tools  virtiofs  ro,defaults  0  0"
+            fstab_grep="virtiofs"
+            description="virtiofs"
+            mount_note="requires virtiofs in VM XML"
+            mount_hint="        Add filesystem device to VM with: virsh edit <vm-name>"
+            ;;
+        nfs)
+            fstab_entry=$'# /tools from socks.lbl.gov\nsocks.lbl.gov:/mnt/md0/tools    /tools  nfs  defaults,timeo=900,retrans=5,_netdev 0 0'
+            fstab_grep="socks.lbl.gov:/mnt/md0/tools"
+            description="NFS"
+            mount_note="requires network access to socks.lbl.gov"
+            mount_hint=""
+            ;;
+        *)
+            echo -e "${RED}Error: unknown tools mount type '${type}'.${NC}"
+            exit 1
+            ;;
+    esac
+
+    echo -e "${BLUE}==>${NC} Setting up ${description} mount for /tools..."
     mkdir -p /tools
 
-    # Add to fstab if not already present
-    if ! grep -q "virtiofs" /etc/fstab; then
-        echo "tools  /tools  virtiofs  ro,defaults  0  0" >> /etc/fstab
-        echo -e "${YELLOW}  Added /tools virtiofs mount to /etc/fstab${NC}"
+    # Check for any existing /tools entry in fstab
+    local existing_entry
+    existing_entry=$(grep -E '^[^#]*[[:space:]]+/tools[[:space:]]' /etc/fstab || true)
+    if [[ -n "${existing_entry}" ]]; then
+        if grep -q "${fstab_grep}" /etc/fstab; then
+            echo -e "${YELLOW}  /tools ${description} mount already in /etc/fstab${NC}"
+        else
+            echo -e "${RED}Error: /etc/fstab already has a /tools entry that does not match the expected ${description} configuration:${NC}"
+            echo -e "${RED}  Found: ${existing_entry}${NC}"
+            exit 1
+        fi
     else
-        echo -e "${YELLOW}  /tools virtiofs mount already in /etc/fstab${NC}"
+        printf "%s\n" "${fstab_entry}" >> /etc/fstab
+        echo -e "${YELLOW}  Added /tools ${description} mount to /etc/fstab${NC}"
+        systemctl daemon-reload
     fi
 
-    # Try to mount (will succeed if VM XML has filesystem defined)
+    # Try to mount
     if ! mountpoint -q /tools; then
         if mount /tools 2>/dev/null; then
-            echo -e "${GREEN}  ✓ /tools mounted successfully via virtiofs${NC}"
+            echo -e "${GREEN}  ✓ /tools mounted successfully via ${description}${NC}"
         else
-            echo -e "${YELLOW}  Note: /tools will mount at next boot (requires virtiofs in VM XML)${NC}"
-            echo -e "${YELLOW}        Add filesystem device to VM with: virsh edit <vm-name>${NC}"
+            echo -e "${YELLOW}  Warning: failed to mount /tools via ${description}${NC}"
+            [[ -n "${mount_hint}" ]] && echo -e "${YELLOW}${mount_hint}${NC}"
         fi
     else
         echo -e "${YELLOW}  /tools already mounted${NC}"
     fi
 
-    echo -e "${GREEN}✓ virtiofs mount setup complete${NC}"
+    echo -e "${GREEN}✓ ${description} mount setup complete${NC}"
 }
 
 function setupFireSimGroup() {
@@ -273,8 +308,19 @@ function installFireSimScripts() {
 # Determine script source directory
 SETUP_SCRIPT_DIR="$(cd "$(dirname "${BASH_SOURCE[0]}")" && pwd)"
 
+MODE="${1:-manager}"
+if [[ "$MODE" != "manager" && "$MODE" != "runner" ]]; then
+    echo -e "${RED}Error: invalid mode '${MODE}'. Must be 'manager' or 'runner'.${NC}"
+    displayUsage
+    exit 1
+fi
+
 checkSudo
-setupToolsVirtioFS
+if [[ "$MODE" == "manager" ]]; then
+    setupTools virtiofs
+else
+    setupTools nfs
+fi
 checkXilinxTools
 installOSPreqs true
 installConda
