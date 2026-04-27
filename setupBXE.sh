@@ -28,6 +28,12 @@ declare -a rename_firesim_scripts=(
     "firesim-unmount"
 )
 
+# Groups that the BXE user should be a member of
+declare -a GROUPS_TO_JOIN=(
+    "firesim"
+    "kvm"
+)
+
 function displayUsage() {
     echo "Usage: sudo $0 [manager|runner]"
     echo "  manager (default) : Set up tools via virtiofs mount (for BXE managers)"
@@ -319,30 +325,19 @@ function addBXEUser() {
         echo -e "${GREEN}  ✓ User $username created${NC}"
     fi
 
-    # Handle firesim group
-    if ! getent group firesim >/dev/null; then
-        echo -e "${YELLOW}  firesim group not found, creating...${NC}"
-        groupadd firesim
-        echo -e "${GREEN}  ✓ Group firesim created${NC}"
-    fi
-    if ! id -nG "$username" | grep -qw "firesim"; then
-        usermod -aG firesim "$username"
-        echo -e "${GREEN}  ✓ Added $username to firesim group${NC}"
-    else
-        echo -e "${YELLOW}  User $username already in firesim group${NC}"
-    fi
-
-    # Handle kvm group
-    if getent group kvm >/dev/null; then
-        if ! id -nG "$username" | grep -qw "kvm"; then
-            usermod -aG kvm "$username"
-            echo -e "${GREEN}  ✓ Added $username to kvm group${NC}"
+    # Handle group memberships
+    for group in "${GROUPS_TO_JOIN[@]}"; do
+        if getent group "$group" >/dev/null; then
+            if ! id -nG "$username" | grep -qw "$group"; then
+                usermod -aG "$group" "$username"
+                echo -e "${GREEN}  ✓ Added $username to $group group${NC}"
+            else
+                echo -e "${YELLOW}  User $username already in $group group${NC}"
+            fi
         else
-            echo -e "${YELLOW}  User $username already in kvm group${NC}"
+            echo -e "${YELLOW}  $group group not found, skipping addition${NC}"
         fi
-    else
-        echo -e "${YELLOW}  kvm group not found, skipping addition${NC}"
-    fi
+    done
 
     echo -e "${GREEN}✓ BXE user setup complete${NC}"
 }
