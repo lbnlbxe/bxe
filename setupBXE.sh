@@ -50,7 +50,7 @@ function checkXilinxTools() {
     version_year=$(echo "${XILINX_TOOLS_VERSION}" | cut -d'.' -f1)
 
     if [[ "${version_year}" -ge 2025 ]]; then
-        XILINX_TOOLS_INSTALL_PATH="/tools/Xilinx"
+        XILINX_TOOLS_INSTALL_PATH="/tools/AMD"
         if [[ ! -f "${XILINX_TOOLS_INSTALL_PATH}/XILINX_TOOLS_VERSION" ]]; then
             echo -e "${RED}Error: Xilinx tools not found at ${XILINX_TOOLS_INSTALL_PATH}/XILINX_TOOLS_VERSION${NC}"
             echo -e "${RED}       Missing tools: expected Xilinx ${XILINX_TOOLS_VERSION} installation at ${XILINX_TOOLS_INSTALL_PATH}${NC}"
@@ -305,7 +305,50 @@ function installFireSimScripts() {
     echo -e "${GREEN}✓ FireSim scripts installed${NC}"
 }
 
+function addBXEUser() {
+    echo -e "${BLUE}==>${NC} Adding BXE user..."
+    local username="bxeuser"
+    local fullname="BXE User"
+    local password_hash='$6$DwysQpQ8jfdfcgJW$DjRWBwwLhi/x.4h0GNXjvffhfjHSOI8YZwZyWtqE7YKT9nS9TudlnOv1/wT0sDbnNWV/mmZBdNP9t8S9Emjbh0'
+    
+    if id "$username" >/dev/null 2>&1; then
+        echo -e "${YELLOW}  User $username already exists, updating password${NC}"
+        usermod -p "$password_hash" "$username"
+    else
+        useradd -m -c "$fullname" -p "$password_hash" "$username"
+        echo -e "${GREEN}  ✓ User $username created${NC}"
+    fi
+
+    # Handle firesim group
+    if ! getent group firesim >/dev/null; then
+        echo -e "${YELLOW}  firesim group not found, creating...${NC}"
+        groupadd firesim
+        echo -e "${GREEN}  ✓ Group firesim created${NC}"
+    fi
+    if ! id -nG "$username" | grep -qw "firesim"; then
+        usermod -aG firesim "$username"
+        echo -e "${GREEN}  ✓ Added $username to firesim group${NC}"
+    else
+        echo -e "${YELLOW}  User $username already in firesim group${NC}"
+    fi
+
+    # Handle kvm group
+    if getent group kvm >/dev/null; then
+        if ! id -nG "$username" | grep -qw "kvm"; then
+            usermod -aG kvm "$username"
+            echo -e "${GREEN}  ✓ Added $username to kvm group${NC}"
+        else
+            echo -e "${YELLOW}  User $username already in kvm group${NC}"
+        fi
+    else
+        echo -e "${YELLOW}  kvm group not found, skipping addition${NC}"
+    fi
+
+    echo -e "${GREEN}✓ BXE user setup complete${NC}"
+}
+
 # Determine script source directory
+
 SETUP_SCRIPT_DIR="$(cd "$(dirname "${BASH_SOURCE[0]}")" && pwd)"
 
 MODE="${1:-manager}"
@@ -327,6 +370,7 @@ installConda
 installBXEScripts "${SETUP_SCRIPT_DIR}"
 installGuestMountService
 setupFireSimGroup
+addBXEUser
 installFireSimScripts
 
 echo ""
