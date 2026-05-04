@@ -10,7 +10,7 @@ export FIREMARSHAL_ROOT=
 export CONDA_ROOT=${HOME}/.conda
 
 ### Added Xilinx Tools  
-source /tools/source-vitis-2023.1.sh  
+source /tools/source-vitis.sh 2023.1
 
 ### Added SSH Agent  
 ssh-agent -s > ${HOME}/.ssh/AGENT_VARS
