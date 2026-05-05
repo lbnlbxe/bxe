@@ -105,9 +105,9 @@ function installOSPreqs() {
         version_year=$(echo "${XILINX_TOOLS_VERSION}" | cut -d'.' -f1)
         local install_libs_path
         if [[ "${version_year}" -ge 2025 ]]; then
-            install_libs_path="${XILINX_TOOLS_INSTALL_PATH}/Vivado/scripts/installLibs.sh"
+            install_libs_path="${XILINX_TOOLS_INSTALL_PATH}/${XILINX_TOOLS_VERSION}/Vivado/scripts/installLibs.sh"
         else
-            install_libs_path="${XILINX_TOOLS_INSTALL_PATH}/scripts/installLibs.sh"
+            install_libs_path="${XILINX_TOOLS_INSTALL_PATH}/Vivado/${XILINX_TOOLS_VERSION}/scripts/installLibs.sh"
         fi
         if [[ ! -f "${install_libs_path}" ]]; then
             echo -e "${RED}Error: installLibs.sh not found at ${install_libs_path}${NC}"
