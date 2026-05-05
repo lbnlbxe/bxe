@@ -100,19 +100,21 @@ function installOSPreqs() {
     else
         echo -e "${YELLOW}  libtinfo.so.5 already exists, skipping symlink${NC}"
     fi
-    local version_year
-    version_year=$(echo "${XILINX_TOOLS_VERSION}" | cut -d'.' -f1)
-    local install_libs_path
-    if [[ "${version_year}" -ge 2025 ]]; then
-        install_libs_path="${XILINX_TOOLS_INSTALL_PATH}/Vivado/scripts/installLibs.sh"
-    else
-        install_libs_path="${XILINX_TOOLS_INSTALL_PATH}/scripts/installLibs.sh"
+    if [[ "$MODE" == "runner" ]]; then
+        local version_year
+        version_year=$(echo "${XILINX_TOOLS_VERSION}" | cut -d'.' -f1)
+        local install_libs_path
+        if [[ "${version_year}" -ge 2025 ]]; then
+            install_libs_path="${XILINX_TOOLS_INSTALL_PATH}/Vivado/scripts/installLibs.sh"
+        else
+            install_libs_path="${XILINX_TOOLS_INSTALL_PATH}/scripts/installLibs.sh"
+        fi
+        if [[ ! -f "${install_libs_path}" ]]; then
+            echo -e "${RED}Error: installLibs.sh not found at ${install_libs_path}${NC}"
+            exit 1
+        fi
+        bash "${install_libs_path}"
     fi
-    if [[ ! -f "${install_libs_path}" ]]; then
-        echo -e "${RED}Error: installLibs.sh not found at ${install_libs_path}${NC}"
-        exit 1
-    fi
-    bash "${install_libs_path}"
 
     # Clear apt cache
     rm -rf /var/lib/apt/lists/*
@@ -311,6 +313,54 @@ function installFireSimScripts() {
     echo -e "${GREEN}✓ FireSim scripts installed${NC}"
 }
 
+function installXDMA_XVSECDrivers() {
+    echo -e "${BLUE}==>${NC} Installing XDMA and XVSEC Drivers..."
+    
+    # XDMA
+    echo -e "${YELLOW}  Installing XDMA driver...${NC}"
+    git clone https://github.com/joonho3020/dma_ip_drivers /tmp/dma_ip_drivers
+    cd /tmp/dma_ip_drivers
+    git checkout ubuntu-24-xdma
+    cd XDMA/linux-kernel/xdma
+    make install
+    
+    echo -e "${YELLOW}  Loading XDMA module...${NC}"
+    insmod $(find /lib/modules/$(uname -r) -name "xdma.ko") poll_mode=1 || echo -e "${YELLOW}  XDMA module already loaded or failed to insert${NC}"
+    if lsmod | grep -qi xdma; then
+        echo -e "${GREEN}  ✓ XDMA driver loaded successfully${NC}"
+    else
+        echo -e "${RED}  Error: XDMA driver not found in lsmod${NC}"
+    fi
+    
+    # XVSEC
+    echo -e "${YELLOW}  Installing XVSEC driver...${NC}"
+    git clone https://github.com/joonho3020/dma_ip_drivers /tmp/dma_ip_drivers_xvsec
+    cd /tmp/dma_ip_drivers_xvsec
+    git checkout ubuntu-24-xvsec
+    cd XVSEC/linux-kernel/
+    make clean all
+    make install
+    
+    echo -e "${YELLOW}  Loading XVSEC module...${NC}"
+    modprobe xvsec || echo -e "${YELLOW}  XVSEC module already loaded or failed to insert${NC}"
+    if lsmod | grep -qi xvsec; then
+        echo -e "${GREEN}  ✓ XVSEC driver loaded successfully${NC}"
+    else
+        echo -e "${RED}  Error: XVSEC driver not found in lsmod${NC}"
+    fi
+    
+    if command -v xvsecctl >/dev/null 2>&1; then
+        echo -e "${GREEN}  ✓ xvsecctl found at $(which xvsecctl)${NC}"
+    else
+        echo -e "${RED}  Error: xvsecctl not found${NC}"
+    fi
+    
+    # Cleanup
+    rm -rf /tmp/dma_ip_drivers /tmp/dma_ip_drivers_xvsec
+    
+    echo -e "${GREEN}✓ XDMA and XVSEC drivers installed and verified${NC}"
+}
+
 function addBXEUser() {
     echo -e "${BLUE}==>${NC} Adding BXE user..."
     local username="bxeuser"
@@ -367,6 +417,9 @@ installGuestMountService
 setupFireSimGroup
 addBXEUser
 installFireSimScripts
+if [[ "$MODE" == "runner" ]]; then
+    installXDMA_XVSECDrivers
+fi
 
 echo ""
 echo -e "${GREEN}========================================${NC}"
