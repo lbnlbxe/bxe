@@ -57,15 +57,15 @@ function checkXilinxTools() {
 
     if [[ "${version_year}" -ge 2025 ]]; then
         XILINX_TOOLS_INSTALL_PATH="/tools/AMD"
-        if [[ ! -f "${XILINX_TOOLS_INSTALL_PATH}/XILINX_TOOLS_VERSION" ]]; then
-            echo -e "${RED}Error: Xilinx tools not found at ${XILINX_TOOLS_INSTALL_PATH}/XILINX_TOOLS_VERSION${NC}"
+        if [[ ! -f "${XILINX_TOOLS_INSTALL_PATH}/${XILINX_TOOLS_VERSION}" ]]; then
+            echo -e "${RED}Error: Xilinx tools not found at ${XILINX_TOOLS_INSTALL_PATH}/${XILINX_TOOLS_VERSION}${NC}"
             echo -e "${RED}       Missing tools: expected Xilinx ${XILINX_TOOLS_VERSION} installation at ${XILINX_TOOLS_INSTALL_PATH}${NC}"
             exit 1
         fi
     else
         XILINX_TOOLS_INSTALL_PATH="/tools/Xilinx/Vitis"
-        if [[ ! -f "${XILINX_TOOLS_INSTALL_PATH}/XILINX_TOOLS_VERSION" ]]; then
-            echo -e "${RED}Error: Xilinx tools not found at ${XILINX_TOOLS_INSTALL_PATH}/XILINX_TOOLS_VERSION${NC}"
+        if [[ ! -f "${XILINX_TOOLS_INSTALL_PATH}/${XILINX_TOOLS_VERSION}" ]]; then
+            echo -e "${RED}Error: Xilinx tools not found at ${XILINX_TOOLS_INSTALL_PATH}/${XILINX_TOOLS_VERSION}${NC}"
             echo -e "${RED}       Missing tools: expected Xilinx ${XILINX_TOOLS_VERSION} installation at ${XILINX_TOOLS_INSTALL_PATH}${NC}"
             exit 1
         fi
