@@ -100,22 +100,20 @@ function installOSPreqs() {
     else
         echo -e "${YELLOW}  libtinfo.so.5 already exists, skipping symlink${NC}"
     fi
-    if [[ "$MODE" == "runner" ]]; then
-        local version_year
-        version_year=$(echo "${XILINX_TOOLS_VERSION}" | cut -d'.' -f1)
-        local install_libs_path
-        if [[ "${version_year}" -ge 2025 ]]; then
-            install_libs_path="${XILINX_TOOLS_INSTALL_PATH}/${XILINX_TOOLS_VERSION}/Vivado/scripts/installLibs.sh"
-        else
-            install_libs_path="${XILINX_TOOLS_INSTALL_PATH}/Vivado/${XILINX_TOOLS_VERSION}/scripts/installLibs.sh"
-        fi
-        if [[ ! -f "${install_libs_path}" ]]; then
-            echo -e "${RED}Error: installLibs.sh not found at ${install_libs_path}${NC}"
-            exit 1
-        fi
-        bash "${install_libs_path}"
+    local version_year
+    version_year=$(echo "${XILINX_TOOLS_VERSION}" | cut -d'.' -f1)
+    local install_libs_path
+    if [[ "${version_year}" -ge 2025 ]]; then
+        install_libs_path="${XILINX_TOOLS_INSTALL_PATH}/${XILINX_TOOLS_VERSION}/Vivado/scripts/installLibs.sh"
+    else
+        install_libs_path="${XILINX_TOOLS_INSTALL_PATH}/Vivado/${XILINX_TOOLS_VERSION}/scripts/installLibs.sh"
     fi
-
+    if [[ ! -f "${install_libs_path}" ]]; then
+        echo -e "${RED}Error: installLibs.sh not found at ${install_libs_path}${NC}"
+        exit 1
+    fi
+    bash "${install_libs_path}"
+    
     # Clear apt cache
     rm -rf /var/lib/apt/lists/*
 
