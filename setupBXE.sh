@@ -56,22 +56,22 @@ function checkXilinxTools() {
     version_year=$(echo "${XILINX_TOOLS_VERSION}" | cut -d'.' -f1)
 
     if [[ "${version_year}" -ge 2025 ]]; then
-        XILINX_TOOLS_INSTALL_PATH="/tools/AMD"
-        if [[ ! -d "${XILINX_TOOLS_INSTALL_PATH}/${XILINX_TOOLS_VERSION}" ]]; then
-            echo -e "${RED}Error: Xilinx tools not found at ${XILINX_TOOLS_INSTALL_PATH}/${XILINX_TOOLS_VERSION}${NC}"
+        XILINX_TOOLS_INSTALL_PATH="/tools/AMD/${XILINX_TOOLS_VERSION}/Vivado"
+        if [[ ! -d "${XILINX_TOOLS_INSTALL_PATH}" ]]; then
+            echo -e "${RED}Error: Xilinx tools not found at ${XILINX_TOOLS_INSTALL_PATH}${NC}"
             echo -e "${RED}       Missing tools: expected Xilinx ${XILINX_TOOLS_VERSION} installation at ${XILINX_TOOLS_INSTALL_PATH}${NC}"
             exit 1
         fi
     else
-        XILINX_TOOLS_INSTALL_PATH="/tools/Xilinx/Vitis"
-        if [[ ! -d "${XILINX_TOOLS_INSTALL_PATH}/${XILINX_TOOLS_VERSION}" ]]; then
-            echo -e "${RED}Error: Xilinx tools not found at ${XILINX_TOOLS_INSTALL_PATH}/${XILINX_TOOLS_VERSION}${NC}"
+        XILINX_TOOLS_INSTALL_PATH="/tools/Xilinx/Vivado/${XILINX_TOOLS_VERSION}"
+        if [[ ! -d "${XILINX_TOOLS_INSTALL_PATH}" ]]; then
+            echo -e "${RED}Error: Xilinx tools not found at ${XILINX_TOOLS_INSTALL_PATH}${NC}"
             echo -e "${RED}       Missing tools: expected Xilinx ${XILINX_TOOLS_VERSION} installation at ${XILINX_TOOLS_INSTALL_PATH}${NC}"
             exit 1
         fi
     fi
 
-    echo -e "${GREEN}✓ Xilinx tools found at ${XILINX_TOOLS_INSTALL_PATH}${NC}"
+    echo -e "${GREEN}✓ Xilinx tools found at ${XILINX_TOOLS_INSTALL_PATH}/${XILINX_TOOLS_VERSION}${NC}"
 }
 
 function installOSPreqs() {
@@ -311,9 +311,15 @@ function installFireSimScripts() {
     echo -e "${GREEN}✓ FireSim scripts installed${NC}"
 }
 
-function installXDMA_XVSECDrivers() {
-    echo -e "${BLUE}==>${NC} Installing XDMA and XVSEC Drivers..."
+function installXilinxDrivers() {
+    echo -e "${BLUE}==>${NC} Installing Xilinx Drivers..."
     
+    # Cable
+    # Implement from here: https://docs.fires.im/en/main/Local-FPGA-Initial-Setup.html#:~:text=3.%20Install%20Vivado%20Lab%20and%20Cable%20Drivers
+    echo -e "${YELLOW}  Installing Xilinx cable drivers...${NC}"
+    cd ${XILINX_TOOLS_INSTALL_PATH}/data/xicom/cable_drivers/lin64/install_script/install_drivers/
+    ./install_drivers
+
     # XDMA
     echo -e "${YELLOW}  Installing XDMA driver...${NC}"
     git clone https://github.com/joonho3020/dma_ip_drivers /tmp/dma_ip_drivers
@@ -356,7 +362,7 @@ function installXDMA_XVSECDrivers() {
     # Cleanup
     rm -rf /tmp/dma_ip_drivers /tmp/dma_ip_drivers_xvsec
     
-    echo -e "${GREEN}✓ XDMA and XVSEC drivers installed and verified${NC}"
+    echo -e "${GREEN}✓ Xilinx drivers (Cable, XDMA, XVSEC) installed and verified${NC}"
 }
 
 function addBXEUser() {
@@ -416,7 +422,7 @@ setupFireSimGroup
 addBXEUser
 installFireSimScripts
 if [[ "$MODE" == "runner" ]]; then
-    installXDMA_XVSECDrivers
+    installXilinxDrivers
 fi
 
 echo ""
