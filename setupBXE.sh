@@ -10,6 +10,16 @@ BLUE='\033[0;34m'
 YELLOW='\033[1;33m'
 NC='\033[0m' # No Color
 
+DRY_RUN=false
+
+function run_cmd() {
+    if [[ "$DRY_RUN" == true ]]; then
+        echo -e "${YELLOW}[DRY-RUN] $*${NC}"
+    else
+        "$@"
+    fi
+}
+
 # Xilinx tools version to use for prerequisite installation.
 # Override at runtime, for example: XILINX_TOOLS_VERSION=2025.1 sudo ./setupBXE.sh
 XILINX_TOOLS_VERSION="${XILINX_TOOLS_VERSION:-2023.1}"
@@ -35,19 +45,20 @@ declare -a GROUPS_TO_JOIN=(
 )
 
 function displayUsage() {
-    echo "Usage: sudo $0 [manager|runner]"
+    echo "Usage: sudo $0 [manager|runner] [--dry-run]"
     echo "  manager (default) : Set up tools via virtiofs mount (for BXE managers)"
     echo "  runner            : Set up tools via NFS mount (for BXE runners)"
+    echo "  --dry-run          : Show what would be done without making changes"
     echo "  NOTE : This script expects \$BXE_CONTAINER if being run in a container."
 }
 
 function checkSudo() {
-	# display usage if the script is not run as root user
-	if [[ "${EUID}" -ne 0 ]]; then
-		echo -e "${RED}Error: This script must be run with super-user privileges.${NC}"
-		displayUsage
-		exit 1
-	fi
+    # display usage if the script is not run as root user
+    if [[ "${EUID}" -ne 0 ]]; then
+        echo -e "${RED}Error: This script must be run with super-user privileges.${NC}"
+        displayUsage
+        exit 1
+    fi
 }
 
 function checkXilinxTools() {
@@ -77,25 +88,25 @@ function checkXilinxTools() {
 function installOSPreqs() {
     local IS_NATIVE=$1
     echo -e "${BLUE}==>${NC} Installing OS Prerequisites..."
-    apt update
+    run_cmd apt update
     echo -e "${BLUE}  1. Installing General Prerequisites${NC}"
-    DEBIAN_FRONTEND=noninteractive TZ=America/Los_Angeles apt install -y openssh-server libguestfs-tools \
+    run_cmd env DEBIAN_FRONTEND=noninteractive TZ=America/Los_Angeles apt install -y openssh-server libguestfs-tools \
         wget curl vim tree emacs tmux git build-essential sudo
 
     if [ "$IS_NATIVE" = true ]; then
         echo -e "${BLUE}  Installing desktop environment and remote access tools...${NC}"
-        DEBIAN_FRONTEND=noninteractive TZ=America/Los_Angeles apt install -y \
+        run_cmd env DEBIAN_FRONTEND=noninteractive TZ=America/Los_Angeles apt install -y \
             xfce4 xfce4-goodies dbus dbus-x11 \
             tigervnc-standalone-server xrdp
     fi
 
     echo -e "${BLUE}  2. Installing FireSim Prerequisites${NC}"
-    DEBIAN_FRONTEND=noninteractive TZ=America/Los_Angeles apt install -y libc6-dev screen libtinfo-dev
+    run_cmd env DEBIAN_FRONTEND=noninteractive TZ=America/Los_Angeles apt install -y libc6-dev screen libtinfo-dev
 
     echo -e "${BLUE}  3. Installing Xilinx Prerequisites${NC}"
-    DEBIAN_FRONTEND=noninteractive TZ=America/Los_Angeles apt install -y libtinfo6
+    run_cmd env DEBIAN_FRONTEND=noninteractive TZ=America/Los_Angeles apt install -y libtinfo6
     if [[ ! -e "/usr/lib/x86_64-linux-gnu/libtinfo.so.5" ]]; then
-        ln -s /usr/lib/x86_64-linux-gnu/libtinfo.so.6 /usr/lib/x86_64-linux-gnu/libtinfo.so.5
+        run_cmd ln -s /usr/lib/x86_64-linux-gnu/libtinfo.so.6 /usr/lib/x86_64-linux-gnu/libtinfo.so.5
         echo -e "${YELLOW}  Created libtinfo.so.5 -> libtinfo.so.6 symlink${NC}"
     else
         echo -e "${YELLOW}  libtinfo.so.5 already exists, skipping symlink${NC}"
@@ -112,10 +123,10 @@ function installOSPreqs() {
         echo -e "${RED}Error: installLibs.sh not found at ${install_libs_path}${NC}"
         exit 1
     fi
-    bash "${install_libs_path}"
+    run_cmd bash "${install_libs_path}"
     
     # Clear apt cache
-    rm -rf /var/lib/apt/lists/*
+    run_cmd rm -rf /var/lib/apt/lists/*
 
     echo -e "${GREEN}✓ OS Prerequisites installed${NC}"
 }
@@ -123,29 +134,29 @@ function installOSPreqs() {
 function installBXEScripts() {
     local SOURCE_DIR=$1
     echo -e "${BLUE}==>${NC} Installing BXE Scripts..."
-    mkdir -p /opt/bxe
-    mkdir -p /opt/bxe/managers
+    run_cmd mkdir -p /opt/bxe
+    run_cmd mkdir -p /opt/bxe/managers
 
     # Copy system scripts
     if [ -f "${SOURCE_DIR}/firesim-guestmount.service" ]; then
-        cp "${SOURCE_DIR}/firesim-guestmount.service" /opt/bxe/.
+        run_cmd cp "${SOURCE_DIR}/firesim-guestmount.service" /opt/bxe/.
     fi
     if [ -f "${SOURCE_DIR}/firesim-guestmount.sh" ]; then
-        cp "${SOURCE_DIR}/firesim-guestmount.sh" /opt/bxe/.
+        run_cmd cp "${SOURCE_DIR}/firesim-guestmount.sh" /opt/bxe/.
     fi
     if [ -f "${SOURCE_DIR}/regenSSHKey.sh" ]; then
-        cp "${SOURCE_DIR}/regenSSHKey.sh" /opt/bxe/.
+        run_cmd cp "${SOURCE_DIR}/regenSSHKey.sh" /opt/bxe/.
     fi
 
     # Copy installBXE.sh and dependencies for users
     if [ -f "${SOURCE_DIR}/installBXE.sh" ]; then
-        cp "${SOURCE_DIR}/installBXE.sh" /opt/bxe/.
-        chmod +x /opt/bxe/installBXE.sh
+        run_cmd cp "${SOURCE_DIR}/installBXE.sh" /opt/bxe/.
+        run_cmd chmod +x /opt/bxe/installBXE.sh
     fi
 
     # Copy managers directory (needed by installBXE.sh)
     if [ -d "${SOURCE_DIR}/managers" ]; then
-        cp "${SOURCE_DIR}"/managers/* /opt/bxe/managers/.
+        run_cmd cp "${SOURCE_DIR}"/managers/* /opt/bxe/managers/.
     fi
 
     echo -e "${GREEN}✓ BXE Scripts installed${NC}"
@@ -153,9 +164,9 @@ function installBXEScripts() {
 
 function installGuestMountService() {
     echo -e "${BLUE}==>${NC} Adding Guest Mount Service..."
-    ln -sf /opt/bxe/firesim-guestmount.service /etc/systemd/system/.
-    systemctl daemon-reload
-    systemctl enable --now firesim-guestmount
+    run_cmd ln -sf /opt/bxe/firesim-guestmount.service /etc/systemd/system/.
+    run_cmd systemctl daemon-reload
+    run_cmd systemctl enable --now firesim-guestmount
     echo -e "${GREEN}✓ Guest Mount Service configured${NC}"
 }
 
@@ -164,11 +175,11 @@ function installConda() {
     if ! command -v conda 2>&1 >/dev/null; then
         echo -e "${YELLOW}  conda not installed, installing Miniforge3...${NC}"
         cd /tmp
-        wget https://github.com/conda-forge/miniforge/releases/latest/download/Miniforge3-Linux-x86_64.sh
-        bash Miniforge3-Linux-x86_64.sh -b -p "/opt/conda"
-        rm Miniforge3-Linux-x86_64.sh
-        source "/opt/conda/etc/profile.d/conda.sh"
-        ln -sf /opt/conda/etc/profile.d/conda.sh /etc/profile.d/conda.sh
+        run_cmd wget https://github.com/conda-forge/miniforge/releases/latest/download/Miniforge3-Linux-x86_64.sh
+        run_cmd bash Miniforge3-Linux-x86_64.sh -b -p "/opt/conda"
+        run_cmd rm Miniforge3-Linux-x86_64.sh
+        run_cmd source "/opt/conda/etc/profile.d/conda.sh"
+        run_cmd ln -sf /opt/conda/etc/profile.d/conda.sh /etc/profile.d/conda.sh
         echo -e "${GREEN}  ✓ Miniforge3 installed${NC}"
     else
         echo -e "${YELLOW}  conda already installed${NC}"
@@ -202,7 +213,7 @@ function setupTools() {
     esac
 
     echo -e "${BLUE}==>${NC} Setting up ${description} mount for /tools..."
-    mkdir -p /tools
+    run_cmd mkdir -p /tools
 
     # Check for any existing /tools entry in fstab
     local existing_entry
@@ -216,14 +227,14 @@ function setupTools() {
             exit 1
         fi
     else
-        printf "%s\n" "${fstab_entry}" >> /etc/fstab
+        run_cmd bash -c "printf \"%s\n\" \"${fstab_entry}\" >> /etc/fstab"
         echo -e "${YELLOW}  Added /tools ${description} mount to /etc/fstab${NC}"
-        systemctl daemon-reload
+        run_cmd systemctl daemon-reload
     fi
 
     # Try to mount
     if ! mountpoint -q /tools; then
-        if mount /tools 2>/dev/null; then
+        if run_cmd mount /tools 2>/dev/null; then
             echo -e "${GREEN}  ✓ /tools mounted successfully via ${description}${NC}"
         else
             echo -e "${YELLOW}  Warning: failed to mount /tools via ${description}${NC}"
@@ -242,7 +253,7 @@ function setupFireSimGroup() {
     # Check if firesim group exists, create if not
     if ! getent group firesim >/dev/null; then
         echo -e "${YELLOW}  firesim group not found, creating...${NC}"
-        groupadd firesim
+        run_cmd groupadd firesim
         echo -e "${GREEN}  ✓ firesim group created${NC}"
     else
         echo -e "${YELLOW}  firesim group already exists${NC}"
@@ -251,8 +262,8 @@ function setupFireSimGroup() {
     # If the file is missing or its contents differ, replace it
     if [ ! -f /etc/sudoers.d/firesim ] || ! diff -q <(printf "%s\n" "$desired_firesim_sudoers") /etc/sudoers.d/firesim >/dev/null; then
         echo -e "${YELLOW}  Updating sudoers file for firesim...${NC}"
-        printf "%s\n" "$desired_firesim_sudoers" > /etc/sudoers.d/firesim
-        chmod 440 /etc/sudoers.d/firesim
+        run_cmd bash -c "printf \"%s\n\" \"${desired_firesim_sudoers}\" > /etc/sudoers.d/firesim"
+        run_cmd chmod 440 /etc/sudoers.d/firesim
         echo -e "${GREEN}  ✓ firesim sudoers file updated${NC}"
     else
         echo -e "${YELLOW}  firesim sudoers file already matches${NC}"
@@ -267,24 +278,24 @@ function installFireSimScripts() {
     echo -e "${YELLOW}  Cloning FireSim repository to ${TEMP_FIRESIM_DIR}...${NC}"
 
     cd "${TEMP_FIRESIM_DIR}"
-    git clone https://github.com/firesim/firesim .
+    run_cmd git clone https://github.com/firesim/firesim .
 
     # Copy sudo scripts
     if [ -d "deploy/sudo-scripts" ]; then
         echo -e "${YELLOW}  Copying deploy/sudo-scripts...${NC}"
-        cp deploy/sudo-scripts/* /usr/local/bin/
+        run_cmd cp deploy/sudo-scripts/* /usr/local/bin/
     fi
 
     # Copy xilinx alveo scripts
     if [ -d "platforms/xilinx_alveo_u250/scripts" ]; then
         echo -e "${YELLOW}  Copying platforms/xilinx_alveo_u250/scripts...${NC}"
-        cp platforms/xilinx_alveo_u250/scripts/* /usr/local/bin/
+        run_cmd cp platforms/xilinx_alveo_u250/scripts/* /usr/local/bin/
     fi
 
     # Set permissions and group
     echo -e "${YELLOW}  Setting permissions and group for firesim scripts...${NC}"
-    chmod 755 /usr/local/bin/firesim*
-    chgrp firesim /usr/local/bin/firesim*
+    run_cmd chmod 755 /usr/local/bin/firesim*
+    run_cmd chgrp firesim /usr/local/bin/firesim*
 
     # Hiding firesim scripts to force the use of guestmount
     echo -e "${YELLOW}  Hiding firesim-mount* and firesim-unmount to force the use of guestmount...${NC}"
@@ -293,7 +304,7 @@ function installFireSimScripts() {
         dst="O_${src}"
         if [[ -f "$src" ]]; then
             echo -e "${BLUE}  Renaming \"${src}\" → \"${dst}\""
-            if mv -- "$src" "$dst"; then
+            if run_cmd mv -- "$src" "$dst"; then
                 echo -e "${GREEN}  Renamed \"${src}\" to \"${dst}\" ${NC}"
             else
                 echo -e "${RED}  Renamed failed for \"${src}\" (mv returned $?).${NC}"
@@ -306,7 +317,7 @@ function installFireSimScripts() {
     # Clean up temporary directory
     echo -e "${YELLOW}  Cleaning up temporary files...${NC}"
     cd /
-    rm -rf "${TEMP_FIRESIM_DIR}"
+    run_cmd rm -rf "${TEMP_FIRESIM_DIR}"
 
     echo -e "${GREEN}✓ FireSim scripts installed${NC}"
 }
@@ -318,18 +329,18 @@ function installXilinxDrivers() {
     # Implement from here: https://docs.fires.im/en/main/Local-FPGA-Initial-Setup.html#:~:text=3.%20Install%20Vivado%20Lab%20and%20Cable%20Drivers
     echo -e "${YELLOW}  Installing Xilinx cable drivers...${NC}"
     cd ${XILINX_TOOLS_INSTALL_PATH}/data/xicom/cable_drivers/lin64/install_script/install_drivers/
-    ./install_drivers
+    run_cmd ./install_drivers
 
     # XDMA
     echo -e "${YELLOW}  Installing XDMA driver...${NC}"
-    git clone https://github.com/joonho3020/dma_ip_drivers /tmp/dma_ip_drivers
+    run_cmd git clone https://github.com/joonho3020/dma_ip_drivers /tmp/dma_ip_drivers
     cd /tmp/dma_ip_drivers
-    git checkout ubuntu-24-xdma
+    run_cmd git checkout ubuntu-24-xdma
     cd XDMA/linux-kernel/xdma
-    make install
+    run_cmd make install
     
     echo -e "${YELLOW}  Loading XDMA module...${NC}"
-    insmod $(find /lib/modules/$(uname -r) -name "xdma.ko") poll_mode=1 || echo -e "${YELLOW}  XDMA module already loaded or failed to insert${NC}"
+    run_cmd insmod $(find /lib/modules/$(uname -r) -name "xdma.ko") poll_mode=1 || echo -e "${YELLOW}  XDMA module already loaded or failed to insert${NC}"
     if lsmod | grep -qi xdma; then
         echo -e "${GREEN}  ✓ XDMA driver loaded successfully${NC}"
     else
@@ -338,15 +349,15 @@ function installXilinxDrivers() {
     
     # XVSEC
     echo -e "${YELLOW}  Installing XVSEC driver...${NC}"
-    git clone https://github.com/joonho3020/dma_ip_drivers /tmp/dma_ip_drivers_xvsec
+    run_cmd git clone https://github.com/joonho3020/dma_ip_drivers /tmp/dma_ip_drivers_xvsec
     cd /tmp/dma_ip_drivers_xvsec
-    git checkout ubuntu-24-xvsec
+    run_cmd git checkout ubuntu-24-xvsec
     cd XVSEC/linux-kernel/
-    make clean all
-    make install
+    run_cmd make clean all
+    run_cmd make install
     
     echo -e "${YELLOW}  Loading XVSEC module...${NC}"
-    modprobe xvsec || echo -e "${YELLOW}  XVSEC module already loaded or failed to insert${NC}"
+    run_cmd modprobe xvsec || echo -e "${YELLOW}  XVSEC module already loaded or failed to insert${NC}"
     if lsmod | grep -qi xvsec; then
         echo -e "${GREEN}  ✓ XVSEC driver loaded successfully${NC}"
     else
@@ -360,7 +371,7 @@ function installXilinxDrivers() {
     fi
     
     # Cleanup
-    rm -rf /tmp/dma_ip_drivers /tmp/dma_ip_drivers_xvsec
+    run_cmd rm -rf /tmp/dma_ip_drivers /tmp/dma_ip_drivers_xvsec
     
     echo -e "${GREEN}✓ Xilinx drivers (Cable, XDMA, XVSEC) installed and verified${NC}"
 }
@@ -373,9 +384,9 @@ function addBXEUser() {
     
     if id "$username" >/dev/null 2>&1; then
         echo -e "${YELLOW}  User $username already exists, updating password${NC}"
-        usermod -p "$password_hash" "$username"
+        run_cmd usermod -p "$password_hash" "$username"
     else
-        useradd -m -c "$fullname" -p "$password_hash" "$username"
+        run_cmd useradd -m -c "$fullname" -p "$password_hash" "$username"
         echo -e "${GREEN}  ✓ User $username created${NC}"
     fi
 
@@ -383,7 +394,7 @@ function addBXEUser() {
     for group in "${GROUPS_TO_JOIN[@]}"; do
         if getent group "$group" >/dev/null; then
             if ! id -nG "$username" | grep -qw "$group"; then
-                usermod -aG "$group" "$username"
+                run_cmd usermod -aG "$group" "$username"
                 echo -e "${GREEN}  ✓ Added $username to $group group${NC}"
             else
                 echo -e "${YELLOW}  User $username already in $group group${NC}"
@@ -400,12 +411,18 @@ function addBXEUser() {
 
 SETUP_SCRIPT_DIR="$(cd "$(dirname "${BASH_SOURCE[0]}")" && pwd)"
 
-MODE="${1:-manager}"
-if [[ "$MODE" != "manager" && "$MODE" != "runner" ]]; then
-    echo -e "${RED}Error: invalid mode '${MODE}'. Must be 'manager' or 'runner'.${NC}"
-    displayUsage
-    exit 1
-fi
+MODE="manager"
+for arg in "$@"; do
+    if [[ "$arg" == "--dry-run" ]]; then
+        DRY_RUN=true
+    elif [[ "$arg" == "manager" || "$arg" == "runner" ]]; then
+        MODE="$arg"
+    else
+        echo -e "${RED}Error: invalid argument '${arg}'.${NC}"
+        displayUsage
+        exit 1
+    fi
+done
 
 checkSudo
 if [[ "$MODE" == "manager" ]]; then
