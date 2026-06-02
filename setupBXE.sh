@@ -67,22 +67,24 @@ function checkXilinxTools() {
     version_year=$(echo "${XILINX_TOOLS_VERSION}" | cut -d'.' -f1)
 
     if [[ "${version_year}" -ge 2025 ]]; then
-        XILINX_TOOLS_INSTALL_PATH="/tools/AMD/${XILINX_TOOLS_VERSION}/Vivado"
-        if [[ ! -d "${XILINX_TOOLS_INSTALL_PATH}" ]]; then
-            echo -e "${RED}Error: Xilinx tools not found at ${XILINX_TOOLS_INSTALL_PATH}${NC}"
-            echo -e "${RED}       Missing tools: expected Xilinx ${XILINX_TOOLS_VERSION} installation at ${XILINX_TOOLS_INSTALL_PATH}${NC}"
+        XILINX_VIVADO_INSTALL_PATH="/tools/AMD/${XILINX_TOOLS_VERSION}/Vivado"
+        XILINX_VITIS_INSTALL_PATH="/tools/AMD/${XILINX_TOOLS_VERSION}/Vitis"
+        if [[ ! -d "${XILINX_VIVADO_INSTALL_PATH}" ]]; then
+            echo -e "${RED}Error: Xilinx tools not found at ${XILINX_VIVADO_INSTALL_PATH}${NC}"
+            echo -e "${RED}       Missing tools: expected Xilinx ${XILINX_TOOLS_VERSION} installation at ${XILINX_VIVADO_INSTALL_PATH}${NC}"
             exit 1
         fi
     else
-        XILINX_TOOLS_INSTALL_PATH="/tools/Xilinx/Vivado/${XILINX_TOOLS_VERSION}"
-        if [[ ! -d "${XILINX_TOOLS_INSTALL_PATH}" ]]; then
-            echo -e "${RED}Error: Xilinx tools not found at ${XILINX_TOOLS_INSTALL_PATH}${NC}"
-            echo -e "${RED}       Missing tools: expected Xilinx ${XILINX_TOOLS_VERSION} installation at ${XILINX_TOOLS_INSTALL_PATH}${NC}"
+        XILINX_VIVADO_INSTALL_PATH="/tools/Xilinx/Vivado/${XILINX_TOOLS_VERSION}"
+        XILINX_VITIS_INSTALL_PATH="/tools/Xilinx/Vitis/${XILINX_TOOLS_VERSION}"
+        if [[ ! -d "${XILINX_VIVADO_INSTALL_PATH}" ]]; then
+            echo -e "${RED}Error: Xilinx tools not found at ${XILINX_VIVADO_INSTALL_PATH}${NC}"
+            echo -e "${RED}       Missing tools: expected Xilinx ${XILINX_TOOLS_VERSION} installation at ${XILINX_VIVADO_INSTALL_PATH}${NC}"
             exit 1
         fi
     fi
 
-    echo -e "${GREEN}✓ Xilinx tools found at ${XILINX_TOOLS_INSTALL_PATH}/${XILINX_TOOLS_VERSION}${NC}"
+    echo -e "${GREEN}✓ Xilinx tools found at ${XILINX_VIVADO_INSTALL_PATH}/${XILINX_TOOLS_VERSION}${NC}"
 }
 
 function installOSPreqs() {
@@ -114,11 +116,7 @@ function installOSPreqs() {
     local version_year
     version_year=$(echo "${XILINX_TOOLS_VERSION}" | cut -d'.' -f1)
     local install_libs_path
-    if [[ "${version_year}" -ge 2025 ]]; then
-        install_libs_path="${XILINX_TOOLS_INSTALL_PATH}/${XILINX_TOOLS_VERSION}/Vivado/scripts/installLibs.sh"
-    else
-        install_libs_path="${XILINX_TOOLS_INSTALL_PATH}/Vivado/${XILINX_TOOLS_VERSION}/scripts/installLibs.sh"
-    fi
+    install_libs_path="${XILINX_VITIS_INSTALL_PATH}/scripts/installLibs.sh"
     if [[ ! -f "${install_libs_path}" ]]; then
         echo -e "${RED}Error: installLibs.sh not found at ${install_libs_path}${NC}"
         exit 1
@@ -222,9 +220,9 @@ function setupTools() {
         if grep -q "${fstab_grep}" /etc/fstab; then
             echo -e "${YELLOW}  /tools ${description} mount already in /etc/fstab${NC}"
         else
-            echo -e "${RED}Error: /etc/fstab already has a /tools entry that does not match the expected ${description} configuration:${NC}"
-            echo -e "${RED}  Found: ${existing_entry}${NC}"
-            exit 1
+            echo -e "${YELLOW}Error: /etc/fstab already has a /tools entry that does not match the expected ${description} configuration:${NC}"
+            echo -e "${YELLOW}  Found: ${existing_entry}${NC}"
+            # exit 1
         fi
     else
         run_cmd bash -c "printf \"%s\n\" \"${fstab_entry}\" >> /etc/fstab"
@@ -328,7 +326,7 @@ function installXilinxDrivers() {
     # Cable
     # Implement from here: https://docs.fires.im/en/main/Local-FPGA-Initial-Setup.html#:~:text=3.%20Install%20Vivado%20Lab%20and%20Cable%20Drivers
     echo -e "${YELLOW}  Installing Xilinx cable drivers...${NC}"
-    cd ${XILINX_TOOLS_INSTALL_PATH}/data/xicom/cable_drivers/lin64/install_script/install_drivers/
+    cd ${XILINX_VIVADO_INSTALL_PATH}/data/xicom/cable_drivers/lin64/install_script/install_drivers/
     run_cmd ./install_drivers
 
     # XDMA
