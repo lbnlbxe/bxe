@@ -332,9 +332,9 @@ function installXilinxDrivers() {
     # XDMA
     echo -e "${YELLOW}  Installing XDMA driver...${NC}"
     run_cmd git clone https://github.com/joonho3020/dma_ip_drivers /tmp/dma_ip_drivers
-    cd /tmp/dma_ip_drivers
+    run_cmd cd /tmp/dma_ip_drivers
     run_cmd git checkout ubuntu-24-xdma
-    cd XDMA/linux-kernel/xdma
+    run_cmd cd XDMA/linux-kernel/xdma
     run_cmd make install
     
     echo -e "${YELLOW}  Loading XDMA module...${NC}"
@@ -348,9 +348,9 @@ function installXilinxDrivers() {
     # XVSEC
     echo -e "${YELLOW}  Installing XVSEC driver...${NC}"
     run_cmd git clone https://github.com/joonho3020/dma_ip_drivers /tmp/dma_ip_drivers_xvsec
-    cd /tmp/dma_ip_drivers_xvsec
+    run_cmd cd /tmp/dma_ip_drivers_xvsec
     run_cmd git checkout ubuntu-24-xvsec
-    cd XVSEC/linux-kernel/
+    run_cmd cd XVSEC/linux-kernel/
     run_cmd make clean all
     run_cmd make install
     
