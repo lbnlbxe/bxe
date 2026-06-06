@@ -331,9 +331,9 @@ function installXilinxDrivers() {
 
     # XDMA
     echo -e "${YELLOW}  Installing XDMA driver...${NC}"
-    run_cmd git clone https://github.com/joonho3020/dma_ip_drivers /tmp/dma_ip_drivers
+    run_cmd git clone https://github.com/lbnlbxe/dma_ip_drivers.git /tmp/dma_ip_drivers
     run_cmd cd /tmp/dma_ip_drivers
-    run_cmd git checkout ubuntu-24-xdma
+    run_cmd git checkout xdma
     run_cmd cd XDMA/linux-kernel/xdma
     run_cmd make install
     
