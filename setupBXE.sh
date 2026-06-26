@@ -295,22 +295,26 @@ function installFireSimScripts() {
     run_cmd chmod 755 /usr/local/bin/firesim*
     run_cmd chgrp firesim /usr/local/bin/firesim*
 
-    # Hiding firesim scripts to force the use of guestmount
-    echo -e "${YELLOW}  Hiding firesim-mount* and firesim-unmount to force the use of guestmount...${NC}"
-    cd /usr/local/bin
-    for src in "${rename_firesim_scripts[@]}"; do
-        dst="O_${src}"
-        if [[ -f "$src" ]]; then
-            echo -e "${BLUE}  Renaming \"${src}\" → \"${dst}\""
-            if run_cmd mv -- "$src" "$dst"; then
-                echo -e "${GREEN}  Renamed \"${src}\" to \"${dst}\" ${NC}"
+    # Hiding firesim scripts to force the use of guestmount for Managers only
+    if [[ "$MODE" == "manager" ]]; then
+        echo -e "${YELLOW}  Hiding firesim-mount* and firesim-unmount in managers to force the use of guestmount...${NC}"
+        cd /usr/local/bin
+        for src in "${rename_firesim_scripts[@]}"; do
+            dst="O_${src}"
+            if [[ -f "$src" ]]; then
+                echo -e "${BLUE}  Renaming \"${src}\" → \"${dst}\""
+                if run_cmd mv -- "$src" "$dst"; then
+                    echo -e "${GREEN}  Renamed \"${src}\" to \"${dst}\" ${NC}"
+                else
+                    echo -e "${RED}  Renamed failed for \"${src}\" (mv returned $?).${NC}"
+                fi
             else
-                echo -e "${RED}  Renamed failed for \"${src}\" (mv returned $?).${NC}"
+                echo -e "${YELLOW}  \"${src}\" does not exist or is not a regular file - nothing to do."
             fi
-        else
-            echo -e "${YELLOW}  \"${src}\" does not exist or is not a regular file - nothing to do."
-        fi
-    done
+        done
+    else # "$MODE" == "runner"
+        echo -e "${YELLOW}  Skipping hiding firesim-mount* and firesim-unmount in runners...${NC}"
+    fi
     
     # Clean up temporary directory
     echo -e "${YELLOW}  Cleaning up temporary files...${NC}"
