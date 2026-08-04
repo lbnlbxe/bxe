@@ -5,10 +5,17 @@ BXE provides an automated setup and configuration framework for deploying FireSi
 ## Installing BXE Prerequisites
 
 ```bash
-sudo ./setupBXE.sh
+sudo ./setupBXE.sh [manager|runner]
 ```
 
-The `setupBXE.sh` script must be run with root privileges and installs all system-level prerequisites required for BXE and FireSim. This includes installing essential OS packages (openssh-server, libguestfs-tools, build-essential), setting up Conda (Miniforge3) in `/opt/conda`, configuring virtiofs mounts for `/tools` directories, creating the `firesim` group with appropriate sudoers permissions, and installing FireSim's privileged scripts. The script also installs BXE management scripts to `/opt/bxe` and sets up the guestmount service for handling disk image operations. For native installations, it optionally installs desktop environment components (XFCE4) and remote access tools (VNC, XRDP).
+The `setupBXE.sh` script must be run with root privileges and installs system-level prerequisites required for BXE and FireSim. It supports two operational modes:
+
+- **`manager` (default)**: Configures `/tools` via **virtiofs** mounts, suitable for BXE manager machines.
+- **`runner`**: Configures `/tools` via **NFS** mounts and performs additional setup required for BXE runner machines, including the installation of Xilinx OS prerequisites and the build, loading, and verification of **XDMA** and **XVSEC** kernel drivers.
+
+The script also handles the installation of Conda (Miniforge3) in `/opt/conda`, creates the `firesim` group with appropriate sudoers permissions, and installs FireSim's privileged scripts. BXE management scripts are installed to `/opt/bxe` and the guestmount service is configured for disk image operations. For native installations, it optionally installs desktop environment components (XFCE4) and remote access tools (VNC, XRDP).
+
+**Note**: The Xilinx tools version can be overridden at runtime by setting the `XILINX_TOOLS_VERSION` environment variable (e.g., `sudo XILINX_TOOLS_VERSION=2025.1 ./setupBXE.sh runner`).
 
 ## Adding BXE Users
 
