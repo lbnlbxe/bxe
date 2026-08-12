@@ -1,5 +1,7 @@
 #!/bin/bash
 
+set -e
+
 XVSEC_KERNEL_MOD="/lib/modules/$(uname -r)/updates/kernel/drivers/xvsec/xvsec.ko"
 XVSEC_REPO="https://github.com/joonho3020/dma_ip_drivers"
 XVSEC_HASH=ubuntu-24-xvsec
@@ -15,7 +17,7 @@ if [ ! -f "${XDMA_KERNEL_MOD}" ]; then
 	echo "XVSEC repo clone complete!"
 
 	echo "Building XVSEC driver..."
-	cd ${TEMP_XVSEC_DIR}/dma_ip_drivers_xvsec/XVSEC/linux-kernel/
+	cd ${TEMP_XVSEC_DIR}/XVSEC/linux-kernel/
 	make clean all
 	make install
 	echo "Building XVSEC driver complete!"

@@ -1,5 +1,7 @@
 #!/bin/bash
 
+set -e
+
 XDMA_KERNEL_MOD=$(find /lib/modules/$(uname -r) -name "xdma.ko")
 XDMA_REPO="https://github.com/lbnlbxe/dma_ip_drivers"
 XDMA_HASH=xdma
@@ -16,7 +18,7 @@ if [ -z "${XDMA_KERNEL_MOD}" ]; then
 	echo "XDMA repo clone complete!"
 
 	echo "Building XDMA driver..."
-	cd ${TEMP_XDMA_DIR}/dma_ip_drivers/XDMA/linux-kernel/xdma
+	cd ${TEMP_XDMA_DIR}/XDMA/linux-kernel/xdma
 	make clean && make install
 	XDMA_KERNEL_MOD=$(find /lib/modules/$(uname -r) -name "xdma.ko")
 	echo "Building XDMA driver complete!"
