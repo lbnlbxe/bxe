@@ -13,7 +13,6 @@ if [ -z "${XDMA_KERNEL_MOD}" ]; then
 	echo "Cloning XDMA driver repo at hash ${XDMA_HASH} in ${TEMP_XDMA_DIR}..."
 	cd ${TEMP_XDMA_DIR}
 	git clone ${XDMA_REPO} .
-	cd dma_ip_drivers
 	git checkout ${XDMA_HASH}
 	echo "XDMA repo clone complete!"
 
