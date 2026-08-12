@@ -2,7 +2,7 @@
 Description=Xilinx XDMA Drivers (FireSim)
 
 [Service]
-ExecStart=/opt/bxe/firesim-xdma.sh
+ExecStart=/opt/bxe/runners/firesim-xdma.sh
 Type=oneshot
 RemainAfterExit=yes
 

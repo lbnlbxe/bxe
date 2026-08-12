@@ -2,7 +2,7 @@
 Description=Xilinx XVSEC Drivers (FireSim)  
   
 [Service]  
-ExecStart=/opt/bxe/firesim-xvsec.sh  
+ExecStart=/opt/bxe/runners/firesim-xvsec.sh  
 Type=oneshot  
 RemainAfterExit=yes  
   
