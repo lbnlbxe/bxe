@@ -6,7 +6,7 @@ XVSEC_HASH=ubuntu-24-xvsec
 
 if [ ! -f "${XDMA_KERNEL_MOD}" ]; then
 	echo "XVSEC Driver not found; rebuilding driver for kernel $(uname -r)..."
-    local TEMP_XVSEC_DIR=$(mktemp -d)
+    TEMP_XVSEC_DIR=$(mktemp -d)
 
 	echo "Cloning XVSEC driver repo at hash ${XVSEC_HASH} into ${TEMP_XVSEC_DIR}..."
 	cd ${TEMP_XVSEC_DIR}

@@ -6,7 +6,7 @@ XDMA_HASH=xdma
 
 if [ -z "${XDMA_KERNEL_MOD}" ]; then
 	echo "XDMA Driver not found; rebuilding driver for kernel $(uname -r)..."
-    local TEMP_XDMA_DIR=$(mktemp -d)
+    TEMP_XDMA_DIR=$(mktemp -d)
 
 	echo "Cloning XDMA driver repo at hash ${XDMA_HASH} in ${TEMP_XDMA_DIR}..."
 	cd ${TEMP_XDMA_DIR}
