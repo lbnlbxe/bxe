@@ -1,25 +1,27 @@
 #!/bin/bash
 
 XDMA_KERNEL_MOD=$(find /lib/modules/$(uname -r) -name "xdma.ko")
-XDMA_REPO="https://github.com/joonho3020/dma_ip_drivers"
-XDMA_HASH=dma_ip_drivers
-BXE_RUNNER_HOME="/opt/bxe/runners"
+XDMA_REPO="https://github.com/lbnlbxe/dma_ip_drivers"
+XDMA_HASH=xdma
 
 if [ -z "${XDMA_KERNEL_MOD}" ]; then
 	echo "XDMA Driver not found; rebuilding driver for kernel $(uname -r)..."
-	if [ ! -d "${BXE_RUNNER_HOME}/dma_ip_drivers" ]; then
-		echo "Cloning XDMA driver repo at hash ${XDMA_HASH}..."
-		cd ${BXE_RUNNER_HOME}
-		git clone ${XDMA_REPO}
-		cd dma_ip_drivers
-		git checkout ${XDMA_HASH}
-		echo "XDMA repo clone complete!"
-	fi
+    local TEMP_XDMA_DIR=$(mktemp -d)
+
+	echo "Cloning XDMA driver repo at hash ${XDMA_HASH} in ${TEMP_XDMA_DIR}..."
+	cd ${TEMP_XDMA_DIR}
+	git clone ${XDMA_REPO} .
+	cd dma_ip_drivers
+	git checkout ${XDMA_HASH}
+	echo "XDMA repo clone complete!"
+
 	echo "Building XDMA driver..."
-	cd ${BXE_RUNNER_HOME}/dma_ip_drivers/XDMA/linux-kernel/xdma
+	cd ${TEMP_XDMA_DIR}/dma_ip_drivers/XDMA/linux-kernel/xdma
 	make clean && make install
 	XDMA_KERNEL_MOD=$(find /lib/modules/$(uname -r) -name "xdma.ko")
 	echo "Building XDMA driver complete!"
+
+	cd && rm -rf "${TEMP_XDMA_DIR}"
 fi
 
 if lsmod | grep -wq "xdma"; then
