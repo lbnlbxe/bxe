@@ -325,6 +325,7 @@ function installFireSimScripts() {
 }
 
 function installXilinxDrivers() {
+    local SOURCE_DIR=$1
     echo -e "${BLUE}==>${NC} Installing Xilinx Drivers..."
     
     # Cable
@@ -333,47 +334,48 @@ function installXilinxDrivers() {
     cd ${XILINX_VIVADO_INSTALL_PATH}/data/xicom/cable_drivers/lin64/install_script/install_drivers/
     run_cmd ./install_drivers
 
-    # XDMA
-    echo -e "${YELLOW}  Installing XDMA driver...${NC}"
-    run_cmd git clone https://github.com/lbnlbxe/dma_ip_drivers.git /tmp/dma_ip_drivers
-    run_cmd cd /tmp/dma_ip_drivers
-    run_cmd git checkout xdma
-    run_cmd cd XDMA/linux-kernel/xdma
-    run_cmd make install
+    # XDMA & XVSEC
+    echo -e "${YELLOW}  Installing XDMA and XVSEC drivers via services...${NC}"
+
+    run_cmd mkdir -p /opt/bxe/runners
+
+    local drivers=(
+        "firesim-xdma.sh:firesim-xdma.service"
+        "firesim-xvsec.sh:firesim-xvsec.service"
+    )
+
+    for driver_pair in "${drivers[@]}"; do
+        local script="${driver_pair%%:*}"
+        local service="${driver_pair#*:}"
+        
+        if [ -f "${SOURCE_DIR}/runners/${script}" ] && [ -f "${SOURCE_DIR}/runners/${service}" ]; then
+            run_cmd cp "${SOURCE_DIR}/runners/${script}" /opt/bxe/runners/.
+            run_cmd cp "${SOURCE_DIR}/runners/${service}" /opt/bxe/runners/.
+            run_cmd chmod +x /opt/bxe/runners/${script}
+            run_cmd ln -sf "/opt/bxe/runners/${service}" /etc/systemd/system/.
+            echo -e "${GREEN}  ✓ Copied ${script} and ${service}${NC}"
+        else
+            echo -e "${RED}  Error: Missing driver files for ${script}/${service} in ${SOURCE_DIR}/runners${NC}"
+            exit 1
+        fi
+    done
+
+    run_cmd systemctl daemon-reload
     
-    echo -e "${YELLOW}  Loading XDMA module...${NC}"
-    run_cmd insmod $(find /lib/modules/$(uname -r) -name "xdma.ko") poll_mode=1 || echo -e "${YELLOW}  XDMA module already loaded or failed to insert${NC}"
-    if lsmod | grep -qi xdma; then
-        echo -e "${GREEN}  ✓ XDMA driver loaded successfully${NC}"
-    else
-        echo -e "${RED}  Error: XDMA driver not found in lsmod${NC}"
-    fi
-    
-    # XVSEC
-    echo -e "${YELLOW}  Installing XVSEC driver...${NC}"
-    run_cmd git clone https://github.com/joonho3020/dma_ip_drivers /tmp/dma_ip_drivers_xvsec
-    run_cmd cd /tmp/dma_ip_drivers_xvsec
-    run_cmd git checkout ubuntu-24-xvsec
-    run_cmd cd XVSEC/linux-kernel/
-    run_cmd make clean all
-    run_cmd make install
-    
-    echo -e "${YELLOW}  Loading XVSEC module...${NC}"
-    run_cmd modprobe xvsec || echo -e "${YELLOW}  XVSEC module already loaded or failed to insert${NC}"
-    if lsmod | grep -qi xvsec; then
-        echo -e "${GREEN}  ✓ XVSEC driver loaded successfully${NC}"
-    else
-        echo -e "${RED}  Error: XVSEC driver not found in lsmod${NC}"
-    fi
-    
-    if command -v xvsecctl >/dev/null 2>&1; then
-        echo -e "${GREEN}  ✓ xvsecctl found at $(which xvsecctl)${NC}"
-    else
-        echo -e "${RED}  Error: xvsecctl not found${NC}"
-    fi
-    
-    # Cleanup
-    run_cmd rm -rf /tmp/dma_ip_drivers /tmp/dma_ip_drivers_xvsec
+    for driver_pair in "${drivers[@]}"; do
+        local service="${driver_pair#*:}"
+        local service_name="${service%.service}"
+        
+        echo -e "${YELLOW}  Enabling and starting ${service_name}...${NC}"
+        run_cmd systemctl enable --now "${service_name}"
+        
+        if systemctl is-active --quiet "${service_name}"; then
+            echo -e "${GREEN}  ✓ ${service_name} is active${NC}"
+        else
+            echo -e "${RED}  Error: ${service_name} failed to start${NC}"
+            exit 1
+        fi
+    done
     
     echo -e "${GREEN}✓ Xilinx drivers (Cable, XDMA, XVSEC) installed and verified${NC}"
 }
@@ -441,7 +443,7 @@ setupFireSimGroup
 addBXEUser
 installFireSimScripts
 if [[ "$MODE" == "runner" ]]; then
-    installXilinxDrivers
+    installXilinxDrivers "${SETUP_SCRIPT_DIR}"
 fi
 
 echo ""
