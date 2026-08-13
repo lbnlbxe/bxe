@@ -13,6 +13,7 @@ if [ ! -f "${XDMA_KERNEL_MOD}" ]; then
 	echo "Cloning XVSEC driver repo at hash ${XVSEC_HASH} into ${TEMP_XVSEC_DIR}..."
 	cd ${TEMP_XVSEC_DIR}
 	git clone ${XVSEC_REPO}
+	cd dma_ip_drivers
 	git checkout ${XVSEC_HASH}
 	echo "XVSEC repo clone complete!"
 
