@@ -12,12 +12,12 @@ if [ ! -f "${XDMA_KERNEL_MOD}" ]; then
 
 	echo "Cloning XVSEC driver repo at hash ${XVSEC_HASH} into ${TEMP_XVSEC_DIR}..."
 	cd ${TEMP_XVSEC_DIR}
-	git clone ${XVSEC_REPO} ${TEMP_XDMA_DIR}
+	git clone ${XVSEC_REPO}
 	git checkout ${XVSEC_HASH}
 	echo "XVSEC repo clone complete!"
 
 	echo "Building XVSEC driver..."
-	cd ${TEMP_XVSEC_DIR}/XVSEC/linux-kernel/
+	cd ${TEMP_XVSEC_DIR}/dma_ip_drivers/XVSEC/linux-kernel/
 	make clean all
 	make install
 	echo "Building XVSEC driver complete!"

@@ -12,12 +12,12 @@ if [ -z "${XDMA_KERNEL_MOD}" ]; then
 
 	echo "Cloning XDMA driver repo at hash ${XDMA_HASH} in ${TEMP_XDMA_DIR}..."
 	cd ${TEMP_XDMA_DIR}
-	git clone ${XDMA_REPO} ${TEMP_XDMA_DIR}
+	git clone ${XDMA_REPO}
 	git checkout ${XDMA_HASH}
 	echo "XDMA repo clone complete!"
 
 	echo "Building XDMA driver..."
-	cd ${TEMP_XDMA_DIR}/XDMA/linux-kernel/xdma
+	cd ${TEMP_XDMA_DIR}/dma_ip_drivers/XDMA/linux-kernel/xdma
 	make clean && make install
 	XDMA_KERNEL_MOD=$(find /lib/modules/$(uname -r) -name "xdma.ko")
 	echo "Building XDMA driver complete!"
